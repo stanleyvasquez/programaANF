@@ -2,6 +2,7 @@ import tkinter as tk
 from tkinter import messagebox, ttk, scrolledtext
 from ingreso_datos import IngresoFinanciero
 from editar_datos import EdicionFinanciero
+from balance_general import generar_balance_general
 
 # =========================
 # Ventana principal mejorada
@@ -213,43 +214,72 @@ class AnalisisFinancieroApp:
     def generar_reportes(self):
         ventana_reportes = tk.Toplevel(self.root)
         ventana_reportes.title("Generar Reportes Financieros")
-        ventana_reportes.geometry("900x650")
+        ventana_reportes.geometry("850x700")
         ventana_reportes.config(bg=self.bg_principal)
         ventana_reportes.resizable(False, False)
         
         # Centrar ventana
         ventana_reportes.update_idletasks()
-        x = (ventana_reportes.winfo_screenwidth() // 2) - (450)
-        y = (ventana_reportes.winfo_screenheight() // 2) - (325)
-        ventana_reportes.geometry(f'900x650+{x}+{y}')
+        x = (ventana_reportes.winfo_screenwidth() // 2) - (425)
+        y = (ventana_reportes.winfo_screenheight() // 2) - (350)
+        ventana_reportes.geometry(f'850x700+{x}+{y}')
         
         # Header
-        frame_header = tk.Frame(ventana_reportes, bg=self.bg_secundario, height=80)
+        frame_header = tk.Frame(ventana_reportes, bg=self.bg_secundario, height=90)
         frame_header.pack(fill="x")
         frame_header.pack_propagate(False)
         
         titulo = tk.Label(
             frame_header,
-            text="📈 Generación de Reportes Financieros",
-            font=("Segoe UI", 18, "bold"),
+            text="✓ Generación de Reportes Financieros",
+            font=("Segoe UI", 20, "bold"),
             bg=self.bg_secundario,
             fg=self.color_texto
         )
-        titulo.pack(pady=25)
+        titulo.pack(pady=(20, 5))
         
-        # Frame principal
-        frame_principal = tk.Frame(ventana_reportes, bg=self.bg_principal)
-        frame_principal.pack(fill="both", expand=True, padx=40, pady=30)
-        
-        # Instrucciones
-        label_instrucciones = tk.Label(
-            frame_principal,
+        subtitulo = tk.Label(
+            frame_header,
             text="Selecciona el tipo de reporte que deseas generar",
-            font=("Segoe UI", 12),
-            bg=self.bg_principal,
+            font=("Segoe UI", 10),
+            bg=self.bg_secundario,
             fg="#a8b2d1"
         )
-        label_instrucciones.pack(pady=(0, 25))
+        subtitulo.pack(pady=(0, 15))
+        
+        frame_container = tk.Frame(ventana_reportes, bg=self.bg_principal)
+        frame_container.pack(fill="both", expand=True, padx=30, pady=20)
+        
+        # Canvas y scrollbar
+        canvas = tk.Canvas(frame_container, bg=self.bg_principal, highlightthickness=0)
+        scrollbar = tk.Scrollbar(frame_container, orient="vertical", command=canvas.yview)
+        frame_principal = tk.Frame(canvas, bg=self.bg_principal)
+        
+        frame_principal.bind(
+            "<Configure>",
+            lambda e: canvas.configure(scrollregion=canvas.bbox("all"))
+        )
+        
+        canvas.create_window((0, 0), window=frame_principal, anchor="nw")
+        canvas.configure(yscrollcommand=scrollbar.set)
+        
+        def _on_mousewheel(event):
+            try:
+                if canvas.winfo_exists():
+                    canvas.yview_scroll(int(-1*(event.delta/120)), "units")
+            except:
+                pass
+        
+        canvas.bind_all("<MouseWheel>", _on_mousewheel)
+        
+        def on_closing():
+            canvas.unbind_all("<MouseWheel>")
+            ventana_reportes.destroy()
+        
+        ventana_reportes.protocol("WM_DELETE_WINDOW", on_closing)
+        
+        canvas.pack(side="left", fill="both", expand=True, padx=(180, 0))
+        scrollbar.pack(side="right", fill="y")
         
         # Botones de reportes
         reportes = [
@@ -289,27 +319,31 @@ class AnalisisFinancieroApp:
             self.crear_boton_reporte(frame_principal, reporte["titulo"], 
                                     reporte["descripcion"], reporte["comando"])
         
+        frame_footer = tk.Frame(ventana_reportes, bg=self.bg_principal)
+        frame_footer.pack(fill="x", padx=30, pady=(10, 20))
+        
         btn_cerrar = tk.Button(
-            frame_principal,
-            text="❌ Cerrar",
-            font=("Segoe UI", 12, "bold"),
+            frame_footer,
+            text="✕ Cerrar",
+            font=("Segoe UI", 11, "bold"),
             bg=self.color_peligro,
             fg="white",
             cursor="hand2",
             relief="flat",
-            padx=40,
-            pady=12,
+            padx=30,
+            pady=10,
             borderwidth=0,
             activebackground=self.ajustar_color(self.color_peligro, 1.2),
             activeforeground="white",
-            command=ventana_reportes.destroy
+            command=on_closing
         )
-        btn_cerrar.pack(pady=(20, 0))
+        btn_cerrar.pack()
     
     def crear_boton_reporte(self, parent, titulo, descripcion, comando):
         """Crea un botón estilizado para cada tipo de reporte"""
-        frame_boton = tk.Frame(parent, bg=self.color_acento, cursor="hand2", highlightthickness=0)
-        frame_boton.pack(fill="x", pady=8)
+        frame_boton = tk.Frame(parent, bg=self.color_acento, cursor="hand2", 
+                              highlightthickness=0, relief="flat")
+        frame_boton.pack(fill="x", pady=6)
         
         def on_enter(e):
             color_hover = self.ajustar_color(self.color_acento, 1.3)
@@ -329,13 +363,13 @@ class AnalisisFinancieroApp:
         label_titulo = tk.Label(
             frame_boton,
             text=titulo,
-            font=("Segoe UI", 13, "bold"),
+            font=("Segoe UI", 12, "bold"),
             bg=self.color_acento,
             fg="white",
             cursor="hand2",
             anchor="w"
         )
-        label_titulo.pack(fill="x", pady=(12, 5), padx=20)
+        label_titulo.pack(fill="x", pady=(10, 3), padx=18)
         label_titulo.bind("<Enter>", on_enter)
         label_titulo.bind("<Leave>", on_leave)
         label_titulo.bind("<Button-1>", lambda e: comando())
@@ -347,23 +381,170 @@ class AnalisisFinancieroApp:
             bg=self.color_acento,
             fg="#e0e0e0",
             cursor="hand2",
-            anchor="w"
+            anchor="w",
+            wraplength=500
         )
-        label_desc.pack(fill="x", pady=(0, 12), padx=20)
+        label_desc.pack(fill="x", pady=(0, 10), padx=18)
         label_desc.bind("<Enter>", on_enter)
         label_desc.bind("<Leave>", on_leave)
         label_desc.bind("<Button-1>", lambda e: comando())
     
     def generar_balance_general(self):
-        messagebox.showinfo(
-            "Balance General",
-            "Generando Balance General...\n\n"
-            "Este reporte mostrará:\n"
-            "• Activos Corrientes y No Corrientes\n"
-            "• Pasivos Corrientes y No Corrientes\n"
-            "• Patrimonio\n"
-            "• Ecuación Contable: Activos = Pasivos + Patrimonio"
+        if not self.registros_financieros:
+            messagebox.showwarning(
+                "Sin Datos",
+                "No hay registros financieros para generar el Balance General.\n\n"
+                "Por favor, ingresa datos primero usando la opción 'Ingresar Datos'."
+            )
+            return
+        
+        # Si hay un solo registro, usarlo directamente
+        if len(self.registros_financieros) == 1:
+            generar_balance_general(self.root, self.registros_financieros[0])
+            return
+        
+        # Si hay múltiples registros, permitir seleccionar uno
+        self.seleccionar_registro_para_reporte("Balance General", generar_balance_general)
+    
+    def seleccionar_registro_para_reporte(self, nombre_reporte, funcion_reporte):
+        """Permite seleccionar un registro cuando hay múltiples registros disponibles"""
+        ventana_seleccion = tk.Toplevel(self.root)
+        ventana_seleccion.title(f"Seleccionar Registro - {nombre_reporte}")
+        ventana_seleccion.geometry("700x500")
+        ventana_seleccion.config(bg=self.bg_principal)
+        ventana_seleccion.resizable(False, False)
+        
+        # Centrar ventana
+        ventana_seleccion.update_idletasks()
+        x = (ventana_seleccion.winfo_screenwidth() // 2) - (350)
+        y = (ventana_seleccion.winfo_screenheight() // 2) - (250)
+        ventana_seleccion.geometry(f'700x500+{x}+{y}')
+        
+        # Header
+        frame_header = tk.Frame(ventana_seleccion, bg=self.bg_secundario, height=80)
+        frame_header.pack(fill="x")
+        frame_header.pack_propagate(False)
+        
+        titulo = tk.Label(
+            frame_header,
+            text=f"Seleccionar Registro para {nombre_reporte}",
+            font=("Segoe UI", 16, "bold"),
+            bg=self.bg_secundario,
+            fg=self.color_texto
         )
+        titulo.pack(pady=(20, 5))
+        
+        subtitulo = tk.Label(
+            frame_header,
+            text="Selecciona el registro financiero que deseas analizar",
+            font=("Segoe UI", 10),
+            bg=self.bg_secundario,
+            fg="#a8b2d1"
+        )
+        subtitulo.pack()
+        
+        # Frame para la tabla
+        frame_tabla = tk.Frame(ventana_seleccion, bg=self.bg_principal)
+        frame_tabla.pack(fill="both", expand=True, padx=20, pady=20)
+        
+        # Crear Treeview
+        columnas = ("Empresa", "Año", "Moneda", "Total Activos", "Total Pasivos")
+        tree = ttk.Treeview(frame_tabla, columns=columnas, show="headings", height=12)
+        
+        # Configurar columnas
+        tree.heading("Empresa", text="Empresa")
+        tree.heading("Año", text="Año")
+        tree.heading("Moneda", text="Moneda")
+        tree.heading("Total Activos", text="Total Activos")
+        tree.heading("Total Pasivos", text="Total Pasivos")
+        
+        tree.column("Empresa", width=200, anchor="w")
+        tree.column("Año", width=80, anchor="center")
+        tree.column("Moneda", width=150, anchor="center")
+        tree.column("Total Activos", width=120, anchor="e")
+        tree.column("Total Pasivos", width=120, anchor="e")
+        
+        # Scrollbar
+        scrollbar = ttk.Scrollbar(frame_tabla, orient="vertical", command=tree.yview)
+        tree.configure(yscrollcommand=scrollbar.set)
+        
+        # Insertar datos
+        for idx, registro in enumerate(self.registros_financieros):
+            total_activos = (
+                float(registro.get('efectivo_equivalentes', 0)) +
+                float(registro.get('cuentas_cobrar', 0)) +
+                float(registro.get('inventarios', 0)) +
+                float(registro.get('activos_fijos', 0)) +
+                float(registro.get('otros_activos', 0))
+            )
+            
+            total_pasivos = (
+                float(registro.get('cuentas_pagar', 0)) +
+                float(registro.get('prestamos_bancarios', 0)) +
+                float(registro.get('obligaciones_financieras', 0)) +
+                float(registro.get('otros_pasivos', 0))
+            )
+            
+            tree.insert("", "end", iid=idx, values=(
+                registro.get('nombre_empresa', 'N/A'),
+                registro.get('año', 'N/A'),
+                registro.get('moneda', 'N/A'),
+                f"${total_activos:,.2f}",
+                f"${total_pasivos:,.2f}"
+            ))
+        
+        tree.pack(side="left", fill="both", expand=True)
+        scrollbar.pack(side="right", fill="y")
+        
+        # Frame de botones
+        frame_botones = tk.Frame(ventana_seleccion, bg=self.bg_principal)
+        frame_botones.pack(fill="x", padx=20, pady=(0, 20))
+        
+        def generar_reporte_seleccionado():
+            seleccion = tree.selection()
+            if not seleccion:
+                messagebox.showwarning(
+                    "Sin Selección",
+                    "Por favor, selecciona un registro de la tabla."
+                )
+                return
+            
+            idx = int(seleccion[0])
+            registro = self.registros_financieros[idx]
+            ventana_seleccion.destroy()
+            funcion_reporte(self.root, registro)
+        
+        btn_generar = tk.Button(
+            frame_botones,
+            text="✓ Generar Reporte",
+            command=generar_reporte_seleccionado,
+            font=("Segoe UI", 11, "bold"),
+            bg=self.color_exito,
+            fg="white",
+            activebackground=self.ajustar_color(self.color_exito, 1.2),
+            activeforeground="white",
+            cursor="hand2",
+            relief="flat",
+            padx=30,
+            pady=10
+        )
+        btn_generar.pack(side="right")
+        
+        btn_cancelar = tk.Button(
+            frame_botones,
+            text="✕ Cancelar",
+            command=ventana_seleccion.destroy,
+            font=("Segoe UI", 11, "bold"),
+            bg=self.color_peligro,
+            fg="white",
+            activebackground=self.ajustar_color(self.color_peligro, 1.2),
+            activeforeground="white",
+            cursor="hand2",
+            relief="flat",
+            padx=30,
+            pady=10
+        )
+        btn_cancelar.pack(side="right", padx=(0, 10))
     
     def generar_estado_resultados(self):
         messagebox.showinfo(
