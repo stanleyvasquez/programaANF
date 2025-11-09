@@ -42,7 +42,7 @@ class BalanceGeneral:
         
         label_info = tk.Label(
             info_frame,
-            text=f"Año: {self.datos.get('año', 'N/A')} | Moneda: {self.datos.get('moneda', 'N/A')}",
+            text=f"Año: {self.datos.get('anio', 'N/A')} | Moneda: {self.datos.get('tipo_moneda', 'N/A')}",
             font=("Segoe UI", 11),
             bg="#0f172a",
             fg="#64748b"
@@ -153,24 +153,24 @@ class BalanceGeneral:
         )
         label.pack(fill="x")
     
-    def crear_fila_cuenta(self, parent, nombre, valor, row, column, es_total=False):
-        """Crea una fila de cuenta"""
+    def crear_fila_cuenta(self, parent, nombre, valor, row, column, es_total=False, indent=False):
+        """Crea una fila de cuenta con indentación opcional"""
         frame = tk.Frame(parent, bg="#334155" if not es_total else "#1e40af")
         frame.grid(row=row, column=column, sticky="ew", pady=2, padx=5)
         
-        # Configurar grid interno
         frame.columnconfigure(0, weight=1)
         frame.columnconfigure(1, weight=0)
         
         # Nombre de la cuenta
+        padding_left = 30 if indent else 15
         label_nombre = tk.Label(
             frame,
             text=nombre,
-            font=("Segoe UI", 11, "bold" if es_total else "normal"),
+            font=("Segoe UI", 10, "bold" if es_total else "normal"),
             bg="#334155" if not es_total else "#1e40af",
             fg="white",
             anchor="w",
-            padx=15,
+            padx=padding_left,
             pady=6
         )
         label_nombre.grid(row=0, column=0, sticky="w")
@@ -180,7 +180,7 @@ class BalanceGeneral:
         label_valor = tk.Label(
             frame,
             text=valor_formateado,
-            font=("Segoe UI", 11, "bold" if es_total else "normal"),
+            font=("Segoe UI", 10, "bold" if es_total else "normal"),
             bg="#334155" if not es_total else "#1e40af",
             fg="white",
             anchor="e",
@@ -190,120 +190,147 @@ class BalanceGeneral:
         label_valor.grid(row=0, column=1, sticky="e")
     
     def crear_columna_activo(self, parent):
-        """Crea la columna de ACTIVO"""
+        """Crea la columna de ACTIVO con estructura detallada"""
         row = 0
         
-        # Título principal ACTIVO
         self.crear_seccion_titulo(parent, "ACTIVO", row, 0)
         row += 1
         
-        # Activo Corriente o Circulante
-        self.crear_seccion_titulo(parent, "Activo corriente o circulante", row, 0)
+        # ACTIVO CORRIENTE
+        self.crear_seccion_titulo(parent, "ACTIVO CORRIENTE", row, 0)
         row += 1
         
-        efectivo = float(self.datos.get('efectivo_equivalentes', 0))
-        cuentas_cobrar = float(self.datos.get('cuentas_cobrar', 0))
-        inventarios = float(self.datos.get('inventarios', 0))
-        activos_fijos = float(self.datos.get('activos_fijos', 0))
-        otros_activos = float(self.datos.get('otros_activos', 0))
+        efectivo = float(self.datos.get('ACTIVOS_Efectivo', 0))
+        cuentas_cobrar_com = float(self.datos.get('ACTIVOS_Cuentas_por_cobrar_comerciales', 0))
+        prestamos_cobrar = float(self.datos.get('ACTIVOS_Prestamos_por_cobrar_a_partes_relacionadas', 0))
+        inventarios = float(self.datos.get('ACTIVOS_Inventarios', 0))
+        gastos_anticipados = float(self.datos.get('ACTIVOS_Gastos_pagados_por_anticipado', 0))
         
-        self.crear_fila_cuenta(parent, "Efectivo y Equivalentes", efectivo, row, 0)
+        self.crear_fila_cuenta(parent, "Efectivo", efectivo, row, 0, indent=True)
         row += 1
-        self.crear_fila_cuenta(parent, "Cuentas por Cobrar", cuentas_cobrar, row, 0)
+        self.crear_fila_cuenta(parent, "Cuentas por cobrar comerciales y otras", cuentas_cobrar_com, row, 0, indent=True)
         row += 1
-        self.crear_fila_cuenta(parent, "Inventarios", inventarios, row, 0)
+        self.crear_fila_cuenta(parent, "Préstamos por cobrar a partes relacionadas", prestamos_cobrar, row, 0, indent=True)
         row += 1
-        
-        total_activo_corriente = efectivo + cuentas_cobrar + inventarios
-        self.crear_fila_cuenta(parent, "TOTAL ACTIVO CORRIENTE", total_activo_corriente, row, 0, es_total=True)
+        self.crear_fila_cuenta(parent, "Inventarios", inventarios, row, 0, indent=True)
         row += 1
-        
-        # Activo No Corriente o Fijo
-        self.crear_seccion_titulo(parent, "Activo no corriente o fijo", row, 0)
+        self.crear_fila_cuenta(parent, "Gastos pagados por anticipado", gastos_anticipados, row, 0, indent=True)
         row += 1
         
-        self.crear_fila_cuenta(parent, "Activos Fijos", activos_fijos, row, 0)
-        row += 1
-        self.crear_fila_cuenta(parent, "Otros Activos", otros_activos, row, 0)
-        row += 1
-        
-        total_activo_no_corriente = activos_fijos + otros_activos
-        self.crear_fila_cuenta(parent, "TOTAL ACTIVO NO CORRIENTE", total_activo_no_corriente, row, 0, es_total=True)
+        total_corriente = efectivo + cuentas_cobrar_com + prestamos_cobrar + inventarios + gastos_anticipados
+        self.crear_fila_cuenta(parent, "TOTAL ACTIVO CORRIENTE", total_corriente, row, 0, es_total=True)
         row += 1
         
-        # Espacio
-        tk.Frame(parent, bg="#1e293b", height=10).grid(row=row, column=0)
+        # ACTIVO NO CORRIENTE
+        row += 1
+        self.crear_seccion_titulo(parent, "ACTIVO NO CORRIENTE", row, 0)
         row += 1
         
-        # TOTAL ACTIVO
-        total_activo = total_activo_corriente + total_activo_no_corriente
+        propiedades = float(self.datos.get('ACTIVOS_Propiedades,_plantas_y_equipos', 0))  # CORREGIDO
+
+        intangibles = float(self.datos.get('ACTIVOS_Activos_intangibles', 0))
+        impuesto_diferido = float(self.datos.get('ACTIVOS_Impuesto_sobre_la_renta_diferido', 0))
+        otros_activos = float(self.datos.get('ACTIVOS_Otros_activos', 0))
+        
+        self.crear_fila_cuenta(parent, "Propiedades, plantas y equipos", propiedades, row, 0, indent=True)
+        row += 1
+        self.crear_fila_cuenta(parent, "Activos intangibles", intangibles, row, 0, indent=True)
+        row += 1
+        self.crear_fila_cuenta(parent, "Impuesto sobre la renta diferido", impuesto_diferido, row, 0, indent=True)
+        row += 1
+        self.crear_fila_cuenta(parent, "Otros activos", otros_activos, row, 0, indent=True)
+        row += 1
+        
+        total_no_corriente = propiedades + intangibles + impuesto_diferido + otros_activos
+        self.crear_fila_cuenta(parent, "TOTAL ACTIVO NO CORRIENTE", total_no_corriente, row, 0, es_total=True)
+        row += 1
+        
+        row += 1
+        total_activo = total_corriente + total_no_corriente
         self.crear_fila_cuenta(parent, "TOTAL ACTIVO", total_activo, row, 0, es_total=True)
     
     def crear_columna_pasivo_patrimonio(self, parent):
-        """Crea la columna de PASIVO Y PATRIMONIO"""
+        """Crea la columna de PASIVO Y PATRIMONIO con estructura detallada"""
         row = 0
         
-        # Título principal PASIVO
         self.crear_seccion_titulo(parent, "PASIVO", row, 1)
         row += 1
         
-        # Pasivo Corriente o Circulante
-        self.crear_seccion_titulo(parent, "Pasivo corriente o circulante", row, 1)
+        # PASIVO CORRIENTE
+        self.crear_seccion_titulo(parent, "PASIVO CORRIENTE", row, 1)
         row += 1
         
-        cuentas_pagar = float(self.datos.get('cuentas_pagar', 0))
-        prestamos = float(self.datos.get('prestamos_bancarios', 0))
-        obligaciones = float(self.datos.get('obligaciones_financieras', 0))
-        otros_pasivos = float(self.datos.get('otros_pasivos', 0))
+        prest_corto = float(self.datos.get('PASIVOS_Prestamos_por_pagar_a_corto_plazo', 0))
+        prest_partes_corto = float(self.datos.get('PASIVOS_Prestamos_a_partes_relacionadas_corto_plazo', 0))
+        prest_partes_porcion = float(self.datos.get('PASIVOS_Prestamos_a_partes_relacionadas_porcion_corriente', 0))
+        cuentas_pagar = float(self.datos.get('PASIVOS_Cuentas_por_pagar_comerciales', 0))
+        ingresos_diferidos = float(self.datos.get('PASIVOS_Ingresos_diferidos', 0))
+        otras_cuentas = float(self.datos.get('PASIVOS_Otras_cuentas_por_pagar', 0))
+        dividendos = float(self.datos.get('PASIVOS_Dividendos_por_pagar', 0))
         
-        self.crear_fila_cuenta(parent, "Cuentas por Pagar", cuentas_pagar, row, 1)
+        self.crear_fila_cuenta(parent, "Préstamos por pagar a corto plazo", prest_corto, row, 1, indent=True)
         row += 1
-        self.crear_fila_cuenta(parent, "Préstamos Bancarios", prestamos, row, 1)
+        self.crear_fila_cuenta(parent, "Préstamos a partes relacionadas corto plazo", prest_partes_corto, row, 1, indent=True)
         row += 1
-        self.crear_fila_cuenta(parent, "Obligaciones Financieras", obligaciones, row, 1)
+        self.crear_fila_cuenta(parent, "Préstamos a partes relacionadas porción corriente", prest_partes_porcion, row, 1, indent=True)
         row += 1
-        self.crear_fila_cuenta(parent, "Otros Pasivos", otros_pasivos, row, 1)
+        self.crear_fila_cuenta(parent, "Cuentas por pagar comerciales", cuentas_pagar, row, 1, indent=True)
+        row += 1
+        self.crear_fila_cuenta(parent, "Ingresos diferidos", ingresos_diferidos, row, 1, indent=True)
+        row += 1
+        self.crear_fila_cuenta(parent, "Otras cuentas por pagar y acumuladas", otras_cuentas, row, 1, indent=True)
+        row += 1
+        self.crear_fila_cuenta(parent, "Dividendos por pagar", dividendos, row, 1, indent=True)
         row += 1
         
-        total_pasivo_corriente = cuentas_pagar + prestamos + obligaciones + otros_pasivos
+        total_pasivo_corriente = prest_corto + prest_partes_corto + prest_partes_porcion + cuentas_pagar + ingresos_diferidos + otras_cuentas + dividendos
         self.crear_fila_cuenta(parent, "TOTAL PASIVO CORRIENTE", total_pasivo_corriente, row, 1, es_total=True)
         row += 1
         
-        # Pasivo No Corriente (si existe)
-        # Por ahora no tenemos datos específicos, pero dejamos la estructura
-        self.crear_seccion_titulo(parent, "Pasivo no corriente o fijo", row, 1)
+        # PASIVO NO CORRIENTE
+        row += 1
+        self.crear_seccion_titulo(parent, "PASIVO NO CORRIENTE", row, 1)
         row += 1
         
-        # Aquí podrías agregar pasivos a largo plazo si los tienes en los datos
-        pasivo_no_corriente = 0
-        self.crear_fila_cuenta(parent, "TOTAL PASIVO NO CORRIENTE", pasivo_no_corriente, row, 1, es_total=True)
+        prest_largo = float(self.datos.get('PASIVOS_Prestamos_a_partes_relacionadas_largo_plazo', 0))
+        
+        self.crear_fila_cuenta(parent, "Préstamos a partes relacionadas largo plazo", prest_largo, row, 1, indent=True)
+        row += 1
+        
+        self.crear_fila_cuenta(parent, "TOTAL PASIVO NO CORRIENTE", prest_largo, row, 1, es_total=True)
+        row += 1
+        
+        row += 1
+        total_pasivo = total_pasivo_corriente + prest_largo
+        self.crear_fila_cuenta(parent, "TOTAL PASIVO", total_pasivo, row, 1, es_total=True)
         row += 1
         
         # PATRIMONIO O CAPITAL CONTABLE
+        row += 1
         self.crear_seccion_titulo(parent, "PATRIMONIO O CAPITAL CONTABLE", row, 1)
         row += 1
         
-        capital_social = float(self.datos.get('capital_social', 0))
-        reservas = float(self.datos.get('reservas', 0))
-        utilidades_retenidas = float(self.datos.get('utilidades_retenidas', 0))
+        capital_social = float(self.datos.get('PATRIMONIO_Capital_social', 0))
+        capital_minimo = float(self.datos.get('PATRIMONIO_Capital_social_minimo', 0))
+        reserva_legal = float(self.datos.get('PATRIMONIO_Reserva_legal', 0))
+        deficit = float(self.datos.get('PATRIMONIO_Deficit_acumulado', 0))
         
-        self.crear_fila_cuenta(parent, "Capital Social", capital_social, row, 1)
+        self.crear_fila_cuenta(parent, "Capital social", capital_social, row, 1, indent=True)
         row += 1
-        self.crear_fila_cuenta(parent, "Reservas", reservas, row, 1)
+        self.crear_fila_cuenta(parent, "Capital social mínimo", capital_minimo, row, 1, indent=True)
         row += 1
-        self.crear_fila_cuenta(parent, "Utilidades Retenidas", utilidades_retenidas, row, 1)
+        self.crear_fila_cuenta(parent, "Reserva legal", reserva_legal, row, 1, indent=True)
+        row += 1
+        deficit_display = -deficit if deficit > 0 else deficit
+        self.crear_fila_cuenta(parent, "Déficit acumulado", deficit_display, row, 1, indent=True)
         row += 1
         
-        total_patrimonio = capital_social + reservas + utilidades_retenidas
+        total_patrimonio = capital_social  + reserva_legal - deficit
         self.crear_fila_cuenta(parent, "TOTAL PATRIMONIO", total_patrimonio, row, 1, es_total=True)
         row += 1
         
-        # Espacio
-        tk.Frame(parent, bg="#1e293b", height=10).grid(row=row, column=1)
         row += 1
-        
-        # TOTAL PASIVO Y PATRIMONIO
-        total_pasivo_patrimonio = total_pasivo_corriente + pasivo_no_corriente + total_patrimonio
+        total_pasivo_patrimonio = total_pasivo + total_patrimonio
         self.crear_fila_cuenta(parent, "TOTAL PASIVO Y PATRIMONIO", total_pasivo_patrimonio, row, 1, es_total=True)
     
     def exportar_pdf(self):

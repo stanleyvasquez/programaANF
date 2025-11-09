@@ -3,6 +3,7 @@ from tkinter import messagebox, ttk, scrolledtext
 from ingreso_datos import IngresoFinanciero
 from editar_datos import EdicionFinanciero
 from balance_general import generar_balance_general
+from estado_resultados import generar_estado_resultados
 
 # =========================
 # Ventana principal mejorada
@@ -305,7 +306,7 @@ class AnalisisFinancieroApp:
             },
             {
                 "titulo": "🎯 Análisis de Rentabilidad DuPont",
-                "descripcion": "ROE descompuesto en margen, rotación y apalancamiento",
+                "descripcion": "ROE (Retorno sobre Patrimonio) descompuesto en margen, rotación y apalancamiento",
                 "comando": self.generar_analisis_dupont
             },
             {
@@ -471,15 +472,15 @@ class AnalisisFinancieroApp:
         # Insertar datos
         for idx, registro in enumerate(self.registros_financieros):
             total_activos = (
-                float(registro.get('efectivo_equivalentes', 0)) +
-                float(registro.get('cuentas_cobrar', 0)) +
+                float(registro.get('efectivo_y_equivalentes', 0)) +
+                float(registro.get('cuentas_por_cobrar', 0)) +
                 float(registro.get('inventarios', 0)) +
                 float(registro.get('activos_fijos', 0)) +
                 float(registro.get('otros_activos', 0))
             )
             
             total_pasivos = (
-                float(registro.get('cuentas_pagar', 0)) +
+                float(registro.get('cuentas_por_pagar', 0)) +
                 float(registro.get('prestamos_bancarios', 0)) +
                 float(registro.get('obligaciones_financieras', 0)) +
                 float(registro.get('otros_pasivos', 0))
@@ -487,8 +488,8 @@ class AnalisisFinancieroApp:
             
             tree.insert("", "end", iid=idx, values=(
                 registro.get('nombre_empresa', 'N/A'),
-                registro.get('año', 'N/A'),
-                registro.get('moneda', 'N/A'),
+                registro.get('anio', 'N/A'),
+                registro.get('tipo_moneda', 'N/A'),
                 f"${total_activos:,.2f}",
                 f"${total_pasivos:,.2f}"
             ))
@@ -547,16 +548,21 @@ class AnalisisFinancieroApp:
         btn_cancelar.pack(side="right", padx=(0, 10))
     
     def generar_estado_resultados(self):
-        messagebox.showinfo(
-            "Estado de Resultados",
-            "Generando Estado de Resultados...\n\n"
-            "Este reporte mostrará:\n"
-            "• Ingresos Totales\n"
-            "• Costos y Gastos\n"
-            "• Utilidad Bruta\n"
-            "• Utilidad Operacional\n"
-            "• Utilidad Neta"
-        )
+        if not self.registros_financieros:
+            messagebox.showwarning(
+                "Sin Datos",
+                "No hay registros financieros para generar el Estado de Resultados.\n\n"
+                "Por favor, ingresa datos primero usando la opción 'Ingresar Datos'."
+            )
+            return
+        
+        # Si hay un solo registro, usarlo directamente
+        if len(self.registros_financieros) == 1:
+            generar_estado_resultados(self.root, self.registros_financieros[0])
+            return
+        
+        # Si hay múltiples registros, permitir seleccionar uno
+        self.seleccionar_registro_para_reporte("Estado de Resultados", generar_estado_resultados)
     
     def generar_analisis_vertical_balance(self):
         messagebox.showinfo(

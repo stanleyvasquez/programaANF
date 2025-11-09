@@ -84,42 +84,83 @@ class IngresoFinanciero:
         frame_col_izq.grid(row=0, column=0, sticky="nsew", padx=5)
         
         self.crear_seccion_datos_compacta(frame_col_izq, "ACTIVOS", [
-            "Efectivo y Equivalentes",
-            "Cuentas por Cobrar",
-            "Inventarios",
-            "Activos Fijos",
-            "Otros Activos"
+            {
+                'subrubro': 'Activo Corriente',
+                'campos': [
+                    'Efectivo',
+                    'Cuentas por cobrar comerciales',
+                    'Préstamos por cobrar a partes relacionadas',
+                    'Inventarios',
+                    'Gastos pagados por anticipado'
+                ]
+            },
+            {
+                'subrubro': 'Activo No Corriente',
+                'campos': [
+                    'Propiedades, plantas y equipos',
+                    'Activos intangibles',
+                    'Impuesto sobre la renta diferido',
+                    'Otros activos'
+                ]
+            }
         ], 0)
         
         self.crear_seccion_datos_compacta(frame_col_izq, "PASIVOS", [
-            "Cuentas por Pagar",
-            "Préstamos Bancarios",
-            "Obligaciones Financieras",
-            "Otros Pasivos"
+            {
+                'subrubro': 'Pasivo Corriente',
+                'campos': [
+                    'Préstamos por pagar a corto plazo',
+                    'Préstamos a partes relacionadas corto plazo',
+                    'Préstamos a partes relacionadas porción corriente',
+                    'Cuentas por pagar comerciales',
+                    'Ingresos diferidos',
+                    'Otras cuentas por pagar',
+                    'Dividendos por pagar'
+                ]
+            },
+            {
+                'subrubro': 'Pasivo No Corriente',
+                'campos': [
+                    'Préstamos a partes relacionadas largo plazo'
+                ]
+            }
         ], 1)
         
         frame_col_der = tk.Frame(frame_columnas, bg=self.parent_app.bg_principal)
         frame_col_der.grid(row=0, column=1, sticky="nsew", padx=5)
         
         self.crear_seccion_datos_compacta(frame_col_der, "PATRIMONIO", [
-            "Capital Social",
-            "Reservas",
-            "Utilidades Retenidas"
+            {
+                'subrubro': 'Capital Contable',
+                'campos': [
+                    'Capital social',
+                    'Capital social mínimo',
+                    'Reserva legal',
+                    'Déficit acumulado'
+                ]
+            }
         ], 0)
         
+           # INGRESOS (operacionales + financieros)
         self.crear_seccion_datos_compacta(frame_col_der, "INGRESOS", [
             "Ventas",
             "Ingresos por Servicios",
-            "Otros Ingresos"
+            "Otros Ingresos",
+            "Ingresos Financieros"
         ], 1)
         
+        # GASTOS (operacionales, financieros e impuestos)
+        # 👇 IMPORTANTE: aquí se espera que los gastos se ingresen en NEGATIVO
         self.crear_seccion_datos_compacta(frame_col_der, "GASTOS", [
             "Costo de Ventas",
             "Gastos Administrativos",
             "Gastos de Ventas",
             "Gastos Financieros",
-            "Otros Gastos"
+            "Otros Gastos",
+            "Impuesto sobre la Renta",
+            "Contribucion Especial"
         ], 2)
+
         
         frame_botones = tk.Frame(frame_scroll, bg=self.parent_app.bg_principal)
         frame_botones.grid(row=2, column=0, columnspan=2, pady=20, sticky="ew", padx=20)
@@ -285,43 +326,98 @@ class IngresoFinanciero:
         frame_campos = tk.Frame(frame_seccion, bg=self.parent_app.bg_secundario)
         frame_campos.pack(fill="both", padx=12, pady=10)
         
-        for campo in campos:
-            frame_campo = tk.Frame(frame_campos, bg=self.parent_app.bg_secundario)
-            frame_campo.pack(fill="x", pady=4)
-            
-            label = tk.Label(
-                frame_campo,
-                text=campo + ":",
-                font=("Segoe UI", 9),
-                bg=self.parent_app.bg_secundario,
-                fg=self.parent_app.color_texto,
-                width=20,
-                anchor="w"
-            )
-            label.pack(side="left", padx=(0, 8))
-            
-            entry = tk.Entry(
-                frame_campo,
-                font=("Segoe UI", 9),
-                bg="#2c3e50",
-                fg="white",
-                insertbackground="white",
-                relief="flat",
-                width=20
-            )
-            entry.pack(side="left", ipady=4, fill="x", expand=True)
-            
-            key = f"{titulo}_{campo}"
-            self.entries[key] = entry
-            
-            label_moneda = tk.Label(
-                frame_campo,
-                text="$",
-                font=("Segoe UI", 10, "bold"),
-                bg=self.parent_app.bg_secundario,
-                fg="#3bb273"
-            )
-            label_moneda.pack(side="left", padx=(4, 0))
+        for item in campos:
+            if isinstance(item, dict):
+                # Es un subrubro con sus propios campos
+                subrubro = item.get('subrubro', '')
+                subcampos = item.get('campos', [])
+                
+                # Etiqueta del subrubro
+                label_subrubro = tk.Label(
+                    frame_campos,
+                    text=subrubro,
+                    font=("Segoe UI", 9, "bold"),
+                    bg=self.parent_app.bg_secundario,
+                    fg="#94a3b8"
+                )
+                label_subrubro.pack(fill="x", pady=(8, 4), padx=(0, 0))
+                
+                # Campos del subrubro
+                for subcampo in subcampos:
+                    frame_campo = tk.Frame(frame_campos, bg=self.parent_app.bg_secundario)
+                    frame_campo.pack(fill="x", pady=2)
+                    
+                    label = tk.Label(
+                        frame_campo,
+                        text=subcampo + ":",
+                        font=("Segoe UI", 8),
+                        bg=self.parent_app.bg_secundario,
+                        fg=self.parent_app.color_texto,
+                        width=28,
+                        anchor="w"
+                    )
+                    label.pack(side="left", padx=(15, 8))
+                    
+                    entry = tk.Entry(
+                        frame_campo,
+                        font=("Segoe UI", 8),
+                        bg="#2c3e50",
+                        fg="white",
+                        insertbackground="white",
+                        relief="flat",
+                        width=18
+                    )
+                    entry.pack(side="left", ipady=3, fill="x", expand=True)
+                    
+                    key = f"{titulo}_{subcampo}".replace(" ", "_").replace("á", "a").replace("é", "e").replace("í", "i").replace("ó", "o").replace("ú", "u")
+                    self.entries[key] = entry
+                    
+                    label_moneda = tk.Label(
+                        frame_campo,
+                        text="$",
+                        font=("Segoe UI", 9, "bold"),
+                        bg=self.parent_app.bg_secundario,
+                        fg="#3bb273"
+                    )
+                    label_moneda.pack(side="left", padx=(4, 0))
+            else:
+                # Campo simple
+                frame_campo = tk.Frame(frame_campos, bg=self.parent_app.bg_secundario)
+                frame_campo.pack(fill="x", pady=4)
+                
+                label = tk.Label(
+                    frame_campo,
+                    text=item + ":",
+                    font=("Segoe UI", 9),
+                    bg=self.parent_app.bg_secundario,
+                    fg=self.parent_app.color_texto,
+                    width=20,
+                    anchor="w"
+                )
+                label.pack(side="left", padx=(0, 8))
+                
+                entry = tk.Entry(
+                    frame_campo,
+                    font=("Segoe UI", 9),
+                    bg="#2c3e50",
+                    fg="white",
+                    insertbackground="white",
+                    relief="flat",
+                    width=20
+                )
+                entry.pack(side="left", ipady=4, fill="x", expand=True)
+                
+                key = f"{titulo}_{item}".replace(" ", "_").replace("á", "a").replace("é", "e").replace("í", "i").replace("ó", "o").replace("ú", "u")
+                self.entries[key] = entry
+                
+                label_moneda = tk.Label(
+                    frame_campo,
+                    text="$",
+                    font=("Segoe UI", 10, "bold"),
+                    bg=self.parent_app.bg_secundario,
+                    fg="#3bb273"
+                )
+                label_moneda.pack(side="left", padx=(4, 0))
 
     def guardar_datos(self, ventana):
         nombre_empresa = self.entries["nombre_empresa"].get().strip()
@@ -355,9 +451,12 @@ class IngresoFinanciero:
             if key not in ["nombre_empresa", "anio", "tipo_moneda"]:
                 valor = entry.get().strip()
                 try:
-                    nuevo_registro[key] = float(valor) if valor else 0
+                    valor_numerico = float(valor) if valor else 0
                 except ValueError:
-                    nuevo_registro[key] = 0
+                    valor_numerico = 0
+                
+                # Guardar con la clave exacta del formato SECCION_CampoNormalizado
+                nuevo_registro[key] = valor_numerico
         
         self.parent_app.registros_financieros.append(nuevo_registro)
         
