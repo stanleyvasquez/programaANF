@@ -227,7 +227,7 @@ class EstadoResultados:
             self.crear_fila_cuenta(parent, "(-) Costo de Ventas", costo_ventas, row, indent=True)
             row += 1
             
-            utilidad_bruta = total_ingresos - costo_ventas
+            utilidad_bruta = total_ingresos - abs(costo_ventas)
             self.crear_fila_cuenta(parent, "UTILIDAD BRUTA", utilidad_bruta, row, es_subtotal=True)
             row += 2
             

@@ -4,6 +4,8 @@ from ingreso_datos import IngresoFinanciero
 from editar_datos import EdicionFinanciero
 from balance_general import generar_balance_general
 from estado_resultados import generar_estado_resultados
+from analisis_vertical_balance import generar_analisis_vertical_balance
+from analisis_vertical_estado_resultados import generar_analisis_vertical_estado_resultados
 
 # =========================
 # Ventana principal mejorada
@@ -565,25 +567,34 @@ class AnalisisFinancieroApp:
         self.seleccionar_registro_para_reporte("Estado de Resultados", generar_estado_resultados)
     
     def generar_analisis_vertical_balance(self):
-        messagebox.showinfo(
-            "Análisis Vertical - Balance",
-            "Generando Análisis Vertical del Balance...\n\n"
-            "Este reporte mostrará:\n"
-            "• Porcentaje de cada cuenta respecto al total de activos\n"
-            "• Composición porcentual de activos\n"
-            "• Composición porcentual de pasivos y patrimonio\n"
-            "• Interpretación de la estructura financiera"
-        )
+        if not self.registros_financieros:
+            messagebox.showwarning(
+                "Sin Datos",
+                "No hay registros financieros para generar el Análisis Vertical.\n\n"
+                "Por favor, ingresa datos primero usando la opción 'Ingresar Datos'."
+            )
+            return
+        
+        # Si hay un solo registro, usarlo directamente
+        if len(self.registros_financieros) == 1:
+            generar_analisis_vertical_balance(self.root, self.registros_financieros[0])
+            return
+        
+        # Si hay múltiples registros, permitir seleccionar uno
+        self.seleccionar_registro_para_reporte("Análisis Vertical - Balance", generar_analisis_vertical_balance)
     
     def generar_analisis_vertical_resultados(self):
-        messagebox.showinfo(
-            "Análisis Vertical - Estado de Resultados",
-            "Generando Análisis Vertical del Estado de Resultados...\n\n"
-            "Este reporte mostrará:\n"
-            "• Porcentaje de cada cuenta respecto a las ventas\n"
-            "• Margen bruto (%)\n"
-            "• Margen operacional (%)\n"
-            "• Margen neto (%)"
+        if not self.registros_financieros:
+            messagebox.showwarning(...)
+            return
+        
+        if len(self.registros_financieros) == 1:
+            generar_analisis_vertical_estado_resultados(self.root, self.registros_financieros[0])
+            return
+        
+        self.seleccionar_registro_para_reporte(
+            "Análisis Vertical - Estado de Resultados", 
+            generar_analisis_vertical_estado_resultados
         )
     
     def generar_analisis_dupont(self):
