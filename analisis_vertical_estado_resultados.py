@@ -1,52 +1,68 @@
 import tkinter as tk
 from tkinter import ttk, messagebox
+from datetime import datetime
 
 class AnalisisVerticalEstadoResultados:
     def __init__(self, parent, datos_financieros):
         self.parent = parent
         self.datos = datos_financieros
         
+        screen_width = parent.winfo_screenwidth()
+        screen_height = parent.winfo_screenheight()
+        
+        window_width = max(900, int(screen_width * 0.85))
+        window_height = max(700, int(screen_height * 0.85))
+        
+        window_width = min(1400, window_width)
+        window_height = min(900, window_height)
+        
         # Crear ventana
         self.ventana = tk.Toplevel(parent)
         self.ventana.title("Análisis Vertical - Estado de Resultados")
-        self.ventana.geometry("1100x800")
+        self.ventana.geometry(f"{window_width}x{window_height}")
         self.ventana.configure(bg="#1e293b")
         
-        # Header
-        frame_header = tk.Frame(self.ventana, bg="#0f172a", height=100)
+        # Center window on screen
+        center_x = int(screen_width / 2 - window_width / 2)
+        center_y = int(screen_height / 2 - window_height / 2)
+        self.ventana.geometry(f"{window_width}x{window_height}+{center_x}+{center_y}")
+        
+        frame_header = tk.Frame(self.ventana, bg="#0f172a")
         frame_header.pack(fill="x", pady=(0, 20))
-        frame_header.pack_propagate(False)
         
         label_titulo = tk.Label(
             frame_header,
             text="📊 Análisis Vertical - Estado de Resultados",
             font=("Segoe UI", 24, "bold"),
             bg="#0f172a",
-            fg="white"
+            fg="white",
+            wraplength=int(window_width * 0.9)
         )
         label_titulo.pack(pady=10)
         
         # Información de la empresa
         info_frame = tk.Frame(frame_header, bg="#0f172a")
-        info_frame.pack()
+        info_frame.pack(pady=(0, 15))
         
         label_empresa = tk.Label(
             info_frame,
             text=f"{self.datos.get('nombre_empresa', 'N/A')}",
             font=("Segoe UI", 14, "bold"),
             bg="#0f172a",
-            fg="#94a3b8"
+            fg="#94a3b8",
+            wraplength=int(window_width * 0.9)
         )
         label_empresa.pack()
         
         label_info = tk.Label(
             info_frame,
-            text=f"Año: {self.datos.get('anio', 'N/A')} | Moneda: {self.datos.get('tipo_moneda', 'N/A')}",
+            text=f"Año: {self.datos.get('anio', 'N/A')} | Moneda: {self.datos.get('tipo_moneda', 'N/A')} ",
             font=("Segoe UI", 11),
             bg="#0f172a",
-            fg="#64748b"
+            fg="#64748b",
+            wraplength=int(window_width * 0.9)
         )
-        label_info.pack()
+        label_info.pack(pady=(0, 5))
         
         # Frame principal con scroll
         frame_contenedor = tk.Frame(self.ventana, bg="#1e293b")
@@ -66,6 +82,7 @@ class AnalisisVerticalEstadoResultados:
         canvas.create_window((0, 0), window=frame_scroll, anchor="nw")
         canvas.configure(yscrollcommand=scrollbar.set)
         
+        # Configurar scroll con mouse
         def _on_mousewheel(event):
             try:
                 if canvas.winfo_exists():
@@ -84,9 +101,11 @@ class AnalisisVerticalEstadoResultados:
         canvas.pack(side="left", fill="both", expand=True)
         scrollbar.pack(side="right", fill="y")
         
+        padding = int(window_width * 0.05) if window_width > 1000 else 20
+        
         # Frame para el análisis vertical
         frame_analisis = tk.Frame(frame_scroll, bg="#1e293b")
-        frame_analisis.pack(fill="both", expand=True, padx=60)
+        frame_analisis.pack(fill="both", expand=True, padx=padding)
         
         self.crear_analisis_vertical_resultados(frame_analisis)
         
@@ -159,7 +178,8 @@ class AnalisisVerticalEstadoResultados:
             fg="white",
             anchor="w",
             padx=padding_left,
-            pady=6
+            pady=6,
+            wraplength=250
         )
         label_nombre.grid(row=0, column=0, sticky="w")
         

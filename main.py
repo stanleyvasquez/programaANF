@@ -6,6 +6,7 @@ from balance_general import generar_balance_general
 from estado_resultados import generar_estado_resultados
 from analisis_vertical_balance import generar_analisis_vertical_balance
 from analisis_vertical_estado_resultados import generar_analisis_vertical_estado_resultados
+from analisis_dupont import generar_analisis_dupont
 
 # =========================
 # Ventana principal mejorada
@@ -446,14 +447,49 @@ class AnalisisFinancieroApp:
         )
         subtitulo.pack()
         
+
         # Frame para la tabla
         frame_tabla = tk.Frame(ventana_seleccion, bg=self.bg_principal)
         frame_tabla.pack(fill="both", expand=True, padx=20, pady=20)
         
         # Crear Treeview
         columnas = ("Empresa", "Año", "Moneda", "Total Activos", "Total Pasivos")
-        tree = ttk.Treeview(frame_tabla, columns=columnas, show="headings", height=12)
-        
+        tree = ttk.Treeview(frame_tabla, columns=columnas, show="headings", height=12,)
+                # Estilo oscuro para Treeview
+        style = ttk.Style()
+        style.theme_use("clam")
+
+        style.configure(
+            "Custom.Treeview",
+            background=self.bg_secundario,
+            fieldbackground=self.bg_secundario,
+            foreground=self.color_texto,
+            rowheight=25,
+            font=("Segoe UI", 10)
+        )
+        style.map(
+            "Custom.Treeview",
+            background=[("selected", self.color_acento)],
+            foreground=[("selected", "white")]
+        )
+        style.configure(
+            "Custom.Treeview.Heading",
+            background=self.color_acento,
+            foreground="white",
+            font=("Segoe UI", 10, "bold")
+        )
+
+
+        # Aplicar el estilo al Treeview
+        tree = ttk.Treeview(
+            frame_tabla,
+            columns=columnas,
+            show="headings",
+            height=12,
+            style="Custom.Treeview"
+        )
+
+
         # Configurar columnas
         tree.heading("Empresa", text="Empresa")
         tree.heading("Año", text="Año")
@@ -474,18 +510,26 @@ class AnalisisFinancieroApp:
         # Insertar datos
         for idx, registro in enumerate(self.registros_financieros):
             total_activos = (
-                float(registro.get('efectivo_y_equivalentes', 0)) +
-                float(registro.get('cuentas_por_cobrar', 0)) +
-                float(registro.get('inventarios', 0)) +
-                float(registro.get('activos_fijos', 0)) +
-                float(registro.get('otros_activos', 0))
+                float(registro.get('ACTIVOS_Efectivo', 0)) +
+                float(registro.get('ACTIVOS_Cuentas_por_cobrar_comerciales', 0)) +
+                float(registro.get('ACTIVOS_Prestamos_por_cobrar_a_partes_relacionadas', 0)) +
+                float(registro.get('ACTIVOS_Inventarios', 0)) +
+                float(registro.get('ACTIVOS_Gastos_pagados_por_anticipado', 0)) +
+                float(registro.get('ACTIVOS_Propiedades,_plantas_y_equipos', 0)) +
+                float(registro.get('ACTIVOS_Activos_intangibles', 0)) +
+                float(registro.get('ACTIVOS_Impuesto_sobre_la_renta_diferido', 0)) +
+                float(registro.get('ACTIVOS_Otros_activos', 0))
             )
             
             total_pasivos = (
-                float(registro.get('cuentas_por_pagar', 0)) +
-                float(registro.get('prestamos_bancarios', 0)) +
-                float(registro.get('obligaciones_financieras', 0)) +
-                float(registro.get('otros_pasivos', 0))
+                float(registro.get('PASIVOS_Prestamos_por_pagar_a_corto_plazo', 0)) +
+                float(registro.get('PASIVOS_Prestamos_a_partes_relacionadas_corto_plazo', 0)) +
+                float(registro.get('PASIVOS_Prestamos_a_partes_relacionadas_porcion_corriente', 0)) +
+                float(registro.get('PASIVOS_Cuentas_por_pagar_comerciales', 0)) +
+                float(registro.get('PASIVOS_Ingresos_diferidos', 0)) +
+                float(registro.get('PASIVOS_Otras_cuentas_por_pagar', 0)) +
+                float(registro.get('PASIVOS_Dividendos_por_pagar', 0)) +
+                float(registro.get('PASIVOS_Prestamos_a_partes_relacionadas_largo_plazo', 0))
             )
             
             tree.insert("", "end", iid=idx, values=(
@@ -585,7 +629,11 @@ class AnalisisFinancieroApp:
     
     def generar_analisis_vertical_resultados(self):
         if not self.registros_financieros:
-            messagebox.showwarning(...)
+            messagebox.showwarning(
+                "Sin Datos",
+                "No hay registros financieros para generar el Análisis Vertical.\n\n"
+                "Por favor, ingresa datos primero usando la opción 'Ingresar Datos'."
+            )
             return
         
         if len(self.registros_financieros) == 1:
@@ -598,16 +646,21 @@ class AnalisisFinancieroApp:
         )
     
     def generar_analisis_dupont(self):
-        messagebox.showinfo(
-            "Análisis DuPont",
-            "Generando Análisis de Rentabilidad DuPont...\n\n"
-            "Este reporte mostrará:\n"
-            "• ROE (Retorno sobre Patrimonio)\n"
-            "• Margen de Utilidad Neta\n"
-            "• Rotación de Activos\n"
-            "• Multiplicador de Apalancamiento\n"
-            "• Fórmula: ROE = Margen × Rotación × Apalancamiento"
-        )
+        if not self.registros_financieros:
+            messagebox.showwarning(
+                "Sin Datos",
+                "No hay registros financieros para generar el Análisis de Rentabilidad DuPont.\n\n"
+                "Por favor, ingresa datos primero usando la opción 'Ingresar Datos'."
+            )
+            return
+        
+        # Si hay un solo registro, usarlo directamente
+        if len(self.registros_financieros) == 1:
+            generar_analisis_dupont(self.root, self.registros_financieros[0])
+            return
+        
+        # Si hay múltiples registros, permitir seleccionar uno
+        self.seleccionar_registro_para_reporte("Análisis DuPont", generar_analisis_dupont)
     
     def generar_resumen_ejecutivo(self):
         messagebox.showinfo(

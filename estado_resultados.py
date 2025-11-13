@@ -7,34 +7,51 @@ class EstadoResultados:
         self.parent = parent
         self.datos = datos_financieros
         
+        screen_width = parent.winfo_screenwidth()
+        screen_height = parent.winfo_screenheight()
+        
+        # Calcular dimensiones responsivas (80% del ancho, 85% del alto)
+        window_width = min(int(screen_width * 0.8), 1100)
+        window_height = min(int(screen_height * 0.85), 1000)
+        window_width = max(window_width, 800)
+        window_height = max(window_height, 600)
+        
+        # Centrar ventana
+        pos_x = (screen_width // 2) - (window_width // 2)
+        pos_y = (screen_height // 2) - (window_height // 2)
+        
         # Crear ventana
         self.ventana = tk.Toplevel(parent)
         self.ventana.title("Estado de Resultados")
-        self.ventana.geometry("1100x800")
+        self.ventana.geometry(f"{window_width}x{window_height}+{pos_x}+{pos_y}")
         self.ventana.configure(bg="#1e293b")
         
-        # Header
-        frame_header = tk.Frame(self.ventana, bg="#0f172a", height=100)
-        frame_header.pack(fill="x", pady=(0, 20))
-        frame_header.pack_propagate(False)
+        frame_header = tk.Frame(self.ventana, bg="#0f172a")
+        frame_header.pack(fill="x", pady=(0, 20), padx=20)
+        # Removido: frame_header.pack_propagate(False)
+        
+        # Ajustar tamaño de fuentes según pantalla
+        font_title_size = 24 if window_width > 1000 else 20 if window_width > 800 else 16
+        font_empresa_size = 14 if window_width > 1000 else 12 if window_width > 800 else 10
+        font_info_size = 11 if window_width > 1000 else 10 if window_width > 800 else 9
         
         label_titulo = tk.Label(
             frame_header,
             text="💰 Estado de Resultados",
-            font=("Segoe UI", 24, "bold"),
+            font=("Segoe UI", font_title_size, "bold"),
             bg="#0f172a",
             fg="white"
         )
-        label_titulo.pack(pady=10)
+        label_titulo.pack(pady=(10, 5))
         
         # Información de la empresa
         info_frame = tk.Frame(frame_header, bg="#0f172a")
-        info_frame.pack()
+        info_frame.pack(pady=(0, 10))
         
         label_empresa = tk.Label(
             info_frame,
             text=f"{self.datos.get('nombre_empresa', 'N/A')}",
-            font=("Segoe UI", 14, "bold"),
+            font=("Segoe UI", font_empresa_size, "bold"),
             bg="#0f172a",
             fg="#94a3b8"
         )
@@ -42,8 +59,8 @@ class EstadoResultados:
         
         label_info = tk.Label(
             info_frame,
-            text=f"Año: {self.datos.get('anio', 'N/A')} | Moneda: {self.datos.get('tipo_moneda', 'N/A')}",
-            font=("Segoe UI", 11),
+            text=f"Año: {self.datos.get('anio', 'N/A')} | Moneda: {self.datos.get('tipo_moneda', 'N/A')} ",
+            font=("Segoe UI", font_info_size),
             bg="#0f172a",
             fg="#64748b"
         )
@@ -87,8 +104,9 @@ class EstadoResultados:
         scrollbar.pack(side="right", fill="y")
         
         # Frame para el estado de resultados (una sola columna)
+        padding_horizontal = 60 if window_width > 1000 else 40 if window_width > 800 else 20
         frame_resultados = tk.Frame(frame_scroll, bg="#1e293b")
-        frame_resultados.pack(fill="both", expand=True, padx=60)
+        frame_resultados.pack(fill="both", expand=True, padx=padding_horizontal)
         
         # Crear estado de resultados
         self.crear_estado_resultados(frame_resultados)
@@ -128,6 +146,118 @@ class EstadoResultados:
             pady=10
         )
         btn_exportar.pack(side="right", padx=(0, 10))
+    
+    
+    def crear_estado_resultados(self, parent):
+            """Crea el estado de resultados completo"""
+            row = 0
+            
+            # Obtener datos
+            ventas = float(self.datos.get('INGRESOS_Ventas', 0))
+            ingresos_servicios = float(self.datos.get('INGRESOS_Ingresos_por_Servicios', 0))
+            otros_ingresos = float(self.datos.get('INGRESOS_Otros_Ingresos', 0))
+            
+            costo_ventas = float(self.datos.get('GASTOS_Costo_de_Ventas', 0))
+            gastos_admin = float(self.datos.get('GASTOS_Gastos_Administrativos', 0))
+            gastos_ventas = float(self.datos.get('GASTOS_Gastos_de_Ventas', 0))
+            gastos_financieros = float(self.datos.get('GASTOS_Gastos_Financieros', 0))
+            otros_gastos = float(self.datos.get('GASTOS_Otros_Gastos', 0))
+            
+            # Títulos y cálculos
+            self.crear_seccion_titulo(parent, "ESTADO DE RESULTADOS", row)
+            row += 1
+            
+            # INGRESOS
+            self.crear_seccion_titulo(parent, "INGRESOS OPERACIONALES", row)
+            row += 1
+            
+            self.crear_fila_cuenta(parent, "Ventas", ventas, row, indent=True)
+            row += 1
+            self.crear_fila_cuenta(parent, "Ingresos por Servicios", ingresos_servicios, row, indent=True)
+            row += 1
+            self.crear_fila_cuenta(parent, "Otros Ingresos", otros_ingresos, row, indent=True)
+            row += 1
+            
+            total_ingresos = ventas + ingresos_servicios + otros_ingresos
+            self.crear_fila_cuenta(parent, "TOTAL INGRESOS", total_ingresos, row, es_subtotal=True)
+            row += 2
+            
+            # COSTO DE VENTAS
+            self.crear_fila_cuenta(parent, "(-) Costo de Ventas", costo_ventas, row, indent=True)
+            row += 1
+            
+            utilidad_bruta = total_ingresos - abs(costo_ventas)
+            self.crear_fila_cuenta(parent, "UTILIDAD BRUTA", utilidad_bruta, row, es_subtotal=True)
+            row += 2
+            
+            # GASTOS OPERACIONALES (sin incluir gastos financieros)
+            self.crear_seccion_titulo(parent, "GASTOS OPERACIONALES", row)
+            row += 1
+
+            self.crear_fila_cuenta(parent, "Gastos Administrativos", gastos_admin, row, indent=True)
+            row += 1
+            self.crear_fila_cuenta(parent, "Gastos de Ventas", gastos_ventas, row, indent=True)
+            row += 1
+            self.crear_fila_cuenta(parent, "Otros Gastos", otros_gastos, row, indent=True)
+            row += 1
+
+            total_gastos_operacionales = gastos_admin + gastos_ventas + otros_gastos
+            self.crear_fila_cuenta(parent, "TOTAL GASTOS OPERACIONALES", total_gastos_operacionales, row, es_subtotal=True)
+            row += 2
+
+            # UTILIDAD OPERATIVA
+            if total_gastos_operacionales < 0:
+                utilidad_operativa = utilidad_bruta - abs(total_gastos_operacionales)
+            else:
+                utilidad_operativa = utilidad_bruta - total_gastos_operacionales
+            self.crear_fila_cuenta(parent, "UTILIDAD (PÉRDIDA) OPERATIVA", utilidad_operativa, row, es_subtotal=True)
+            row += 2
+
+            # INGRESOS Y GASTOS FINANCIEROS
+            self.crear_seccion_titulo(parent, "INGRESOS Y GASTOS FINANCIEROS", row)
+            row += 1
+
+            ingresos_financieros = float(self.datos.get('INGRESOS_Ingresos_Financieros', 0))
+            self.crear_fila_cuenta(parent, "Ingresos Financieros", ingresos_financieros, row, indent=True)
+            row += 1
+
+            self.crear_fila_cuenta(parent, "Gastos Financieros", gastos_financieros, row, indent=True)
+            row += 1
+
+            resultado_financiero = ingresos_financieros - abs(gastos_financieros)
+            self.crear_fila_cuenta(parent, "Resultado Financiero Neto", resultado_financiero, row, es_subtotal=True)
+            row += 2
+
+            # UTILIDAD ANTES DE IMPUESTOS
+            utilidad_antes_impuestos = utilidad_operativa + resultado_financiero
+            self.crear_fila_cuenta(parent, "UTILIDAD (PÉRDIDA) ANTES DE IMPUESTOS", utilidad_antes_impuestos, row, es_subtotal=True)
+            row += 2
+
+            # IMPUESTOS
+            impuestos_tasa = 0.30
+            impuestos = utilidad_antes_impuestos * impuestos_tasa if utilidad_antes_impuestos > 0 else 0
+            self.crear_fila_cuenta(parent, "(-) Impuesto sobre la Renta (30%)", impuestos, row)
+            row += 1
+
+            # UTILIDAD NETA
+            utilidad_neta = utilidad_antes_impuestos - impuestos
+            self.crear_fila_cuenta(parent, "UTILIDAD NETA DEL EJERCICIO", utilidad_neta, row, es_total=True)
+            row += 2
+
+            
+            # MÁRGENES
+            self.crear_seccion_titulo(parent, "ANÁLISIS DE MÁRGENES", row)
+            row += 1
+            
+            margen_bruto = (utilidad_bruta / total_ingresos * 100) if total_ingresos > 0 else 0
+            margen_operativo = (utilidad_operativa / total_ingresos * 100) if total_ingresos > 0 else 0
+            margen_neto = (utilidad_neta / total_ingresos * 100) if total_ingresos > 0 else 0
+            
+            self.crear_fila_cuenta(parent, "Margen Bruto", f"{margen_bruto:.2f}%", row)
+            row += 1
+            self.crear_fila_cuenta(parent, "Margen Operativo", f"{margen_operativo:.2f}%", row)
+            row += 1
+            self.crear_fila_cuenta(parent, "Margen Neto", f"{margen_neto:.2f}%", row)
     
     def crear_seccion_titulo(self, parent, texto, row):
         """Crea un título de sección"""
@@ -188,118 +318,6 @@ class EstadoResultados:
             pady=6
         )
         label_valor.grid(row=0, column=1, sticky="e")
-    
-    def crear_estado_resultados(self, parent):
-            """Crea el estado de resultados completo"""
-            row = 0
-            
-            # Obtener datos
-            ventas = float(self.datos.get('INGRESOS_Ventas', 0))
-            ingresos_servicios = float(self.datos.get('INGRESOS_Ingresos_por_Servicios', 0))
-            otros_ingresos = float(self.datos.get('INGRESOS_Otros_Ingresos', 0))
-            
-            costo_ventas = float(self.datos.get('GASTOS_Costo_de_Ventas', 0))
-            gastos_admin = float(self.datos.get('GASTOS_Gastos_Administrativos', 0))
-            gastos_ventas = float(self.datos.get('GASTOS_Gastos_de_Ventas', 0))
-            gastos_financieros = float(self.datos.get('GASTOS_Gastos_Financieros', 0))
-            otros_gastos = float(self.datos.get('GASTOS_Otros_Gastos', 0))
-            
-            # Títulos y cálculos
-            self.crear_seccion_titulo(parent, "ESTADO DE RESULTADOS", row)
-            row += 1
-            
-            # INGRESOS
-            self.crear_seccion_titulo(parent, "INGRESOS OPERACIONALES", row)
-            row += 1
-            
-            self.crear_fila_cuenta(parent, "Ventas", ventas, row, indent=True)
-            row += 1
-            self.crear_fila_cuenta(parent, "Ingresos por Servicios", ingresos_servicios, row, indent=True)
-            row += 1
-            self.crear_fila_cuenta(parent, "Otros Ingresos", otros_ingresos, row, indent=True)
-            row += 1
-            
-            total_ingresos = ventas + ingresos_servicios + otros_ingresos
-            self.crear_fila_cuenta(parent, "TOTAL INGRESOS", total_ingresos, row, es_subtotal=True)
-            row += 2
-            
-            # COSTO DE VENTAS
-            self.crear_fila_cuenta(parent, "(-) Costo de Ventas", costo_ventas, row, indent=True)
-            row += 1
-            
-            utilidad_bruta = total_ingresos - abs(costo_ventas)
-            self.crear_fila_cuenta(parent, "UTILIDAD BRUTA", utilidad_bruta, row, es_subtotal=True)
-            row += 2
-            
-            # GASTOS OPERACIONALES (sin incluir gastos financieros)
-            self.crear_seccion_titulo(parent, "GASTOS OPERACIONALES", row)
-            row += 1
-
-            self.crear_fila_cuenta(parent, "Gastos Administrativos", gastos_admin, row, indent=True)
-            row += 1
-            self.crear_fila_cuenta(parent, "Gastos de Ventas", gastos_ventas, row, indent=True)
-            row += 1
-            self.crear_fila_cuenta(parent, "Otros Gastos", otros_gastos, row, indent=True)
-            row += 1
-
-            total_gastos_operacionales = gastos_admin + gastos_ventas + otros_gastos
-            self.crear_fila_cuenta(parent, "TOTAL GASTOS OPERACIONALES", total_gastos_operacionales, row, es_subtotal=True)
-            row += 2
-
-            # UTILIDAD OPERATIVA
-            #utilidad_operativa = utilidad_bruta - total_gastos_operacionales
-            if total_gastos_operacionales < 0:
-                utilidad_operativa = utilidad_bruta - abs(total_gastos_operacionales)
-            else:
-                utilidad_operativa = utilidad_bruta - total_gastos_operacionales
-            self.crear_fila_cuenta(parent, "UTILIDAD (PÉRDIDA) OPERATIVA", utilidad_operativa, row, es_subtotal=True)
-            row += 2
-
-            # INGRESOS Y GASTOS FINANCIEROS
-            self.crear_seccion_titulo(parent, "INGRESOS Y GASTOS FINANCIEROS", row)
-            row += 1
-
-            ingresos_financieros = float(self.datos.get('INGRESOS_Ingresos_Financieros', 0))
-            self.crear_fila_cuenta(parent, "Ingresos Financieros", ingresos_financieros, row, indent=True)
-            row += 1
-
-            self.crear_fila_cuenta(parent, "Gastos Financieros", gastos_financieros, row, indent=True)
-            row += 1
-
-            resultado_financiero = ingresos_financieros - abs(gastos_financieros)
-            self.crear_fila_cuenta(parent, "Resultado Financiero Neto", resultado_financiero, row, es_subtotal=True)
-            row += 2
-
-            # UTILIDAD ANTES DE IMPUESTOS
-            utilidad_antes_impuestos = utilidad_operativa + resultado_financiero
-            self.crear_fila_cuenta(parent, "UTILIDAD (PÉRDIDA) ANTES DE IMPUESTOS", utilidad_antes_impuestos, row, es_subtotal=True)
-            row += 2
-
-            # IMPUESTOS
-            impuestos_tasa = 0.30
-            impuestos = utilidad_antes_impuestos * impuestos_tasa if utilidad_antes_impuestos > 0 else 0
-            self.crear_fila_cuenta(parent, "(-) Impuesto sobre la Renta (30%)", impuestos, row)
-            row += 1
-
-            # UTILIDAD NETA
-            utilidad_neta = utilidad_antes_impuestos - impuestos
-            self.crear_fila_cuenta(parent, "UTILIDAD NETA DEL EJERCICIO", utilidad_neta, row, es_total=True)
-            row += 2
-
-            
-            # MÁRGENES
-            self.crear_seccion_titulo(parent, "ANÁLISIS DE MÁRGENES", row)
-            row += 1
-            
-            margen_bruto = (utilidad_bruta / total_ingresos * 100) if total_ingresos > 0 else 0
-            margen_operativo = (utilidad_operativa / total_ingresos * 100) if total_ingresos > 0 else 0
-            margen_neto = (utilidad_neta / total_ingresos * 100) if total_ingresos > 0 else 0
-            
-            self.crear_fila_cuenta(parent, "Margen Bruto", f"{margen_bruto:.2f}%", row)
-            row += 1
-            self.crear_fila_cuenta(parent, "Margen Operativo", f"{margen_operativo:.2f}%", row)
-            row += 1
-            self.crear_fila_cuenta(parent, "Margen Neto", f"{margen_neto:.2f}%", row)
     
     def exportar_pdf(self):
         """Exporta el estado de resultados a PDF"""
