@@ -1,6 +1,11 @@
 import tkinter as tk
 from tkinter import ttk, messagebox
 from datetime import datetime
+from reportlab.platypus import SimpleDocTemplate, Table, TableStyle, Paragraph, Spacer
+from reportlab.lib.pagesizes import letter
+from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
+from reportlab.lib import colors
+import os
 
 class BalanceGeneral:
     def __init__(self, parent, datos_financieros):
@@ -353,12 +358,183 @@ class BalanceGeneral:
         self.crear_fila_cuenta(parent, "TOTAL PASIVO Y PATRIMONIO", total_pasivo_patrimonio, row, 1, es_total=True)
     
     def exportar_pdf(self):
-        """Exporta el balance general a PDF"""
-        messagebox.showinfo(
-            "Exportar PDF",
-            "Funcionalidad de exportación a PDF en desarrollo.\n\n"
-            "Próximamente podrás exportar este reporte."
+      
+
+        nombre_archivo = f"Balance_General_{self.datos.get('nombre_empresa','Empresa')}.pdf"
+
+        # Documento con más margen a la derecha
+        doc = SimpleDocTemplate(
+            nombre_archivo,
+            pagesize=letter,
+            leftMargin=50,
+            rightMargin=150,   # << Mueve todo hacia la izquierda
+            topMargin=40,
+            bottomMargin=30
         )
+
+        styles = getSampleStyleSheet()
+
+        # ----- NUEVOS ESTILOS -----
+        titulo_centrado = ParagraphStyle(
+            "titulo_centrado",
+            parent=styles["Title"],
+            alignment=1,           # Centrado
+            fontSize=20,
+            spaceAfter=20
+        )
+
+        texto_centrado = ParagraphStyle(
+            "texto_centrado",
+            parent=styles["Normal"],
+            alignment=1,
+            fontSize=12,
+            spaceAfter=5
+        )
+
+        seccion_titulo = ParagraphStyle(
+            "seccion_titulo",
+            parent=styles["Heading3"],
+            fontSize=12,
+            alignment=0,
+            textColor=colors.black,
+            spaceAfter=4,
+            spaceBefore=12
+        )
+
+        elementos = []
+
+        # ----- TÍTULO -----
+        elementos.append(Paragraph("<b>BALANCE GENERAL</b>", titulo_centrado))
+
+        # ----- INFORMACIÓN DE EMPRESA -----
+        empresa = self.datos.get("nombre_empresa", "N/A")
+        anio = self.datos.get("anio", "N/A")
+        moneda = self.datos.get("tipo_moneda", "N/A")
+
+        elementos.append(Paragraph(f"<b>{empresa}</b>", texto_centrado))
+        elementos.append(Paragraph(f"Año: {anio}", texto_centrado))
+        elementos.append(Paragraph(f"Moneda: {moneda}", texto_centrado))
+        elementos.append(Spacer(1, 15))
+
+        # Función tabla simple
+        def fila(nombre, valor, bold=False):
+            valor = f"$ {valor:,.2f}"
+            style = [
+                ("ALIGN", (1, 0), (1, 0), "RIGHT"),
+                ("FONTSIZE", (0, 0), (-1, -1), 10),
+                ("LEFTPADDING", (0,0), (-1,-1), 4),
+                ("RIGHTPADDING", (0,0), (-1,-1), 4),
+            ]
+            if bold:
+                style.append(("TEXTCOLOR", (0,0), (-1,-1), colors.HexColor("#0b2545")))
+                style.append(("FONTNAME", (0,0), (-1,-1), "Helvetica-Bold"))
+
+            t = Table([[nombre, valor]], colWidths=[230, 80])
+            t.setStyle(TableStyle(style))
+            return t
+
+        # =============== ACTIVO ===============
+        elementos.append(Paragraph("<b>ACTIVO</b>", seccion_titulo))
+
+        # ACTIVO CORRIENTE
+        elementos.append(Paragraph("<b>ACTIVO CORRIENTE</b>", seccion_titulo))
+
+        activos_corrientes = [
+            ("Efectivo", float(self.datos.get("ACTIVOS_Efectivo", 0))),
+            ("Cuentas por cobrar comerciales y otras", float(self.datos.get("ACTIVOS_Cuentas_por_cobrar_comerciales", 0))),
+            ("Préstamos por cobrar a partes relacionadas", float(self.datos.get("ACTIVOS_Prestamos_por_cobrar_a_partes_relacionadas", 0))),
+            ("Inventarios", float(self.datos.get("ACTIVOS_Inventarios", 0))),
+            ("Gastos pagados por anticipado", float(self.datos.get("ACTIVOS_Gastos_pagados_por_anticipado", 0))),
+        ]
+
+        total_ac = 0
+        for nombre, val in activos_corrientes:
+            elementos.append(fila(nombre, val))
+            total_ac += val
+
+        elementos.append(fila("TOTAL ACTIVO CORRIENTE", total_ac, bold=True))
+        elementos.append(Spacer(1, 8))
+
+        # ACTIVO NO CORRIENTE
+        elementos.append(Paragraph("<b>ACTIVO NO CORRIENTE</b>", seccion_titulo))
+
+        activos_nc = [
+            ("Propiedades, plantas y equipos", float(self.datos.get("ACTIVOS_Propiedades,_plantas_y_equipos", 0))),
+            ("Activos intangibles", float(self.datos.get("ACTIVOS_Activos_intangibles", 0))),
+            ("Impuesto sobre la renta diferido", float(self.datos.get("ACTIVOS_Impuesto_sobre_la_renta_diferido", 0))),
+            ("Otros activos", float(self.datos.get("ACTIVOS_Otros_activos", 0))),
+        ]
+
+        total_anc = 0
+        for nombre, val in activos_nc:
+            elementos.append(fila(nombre, val))
+            total_anc += val
+
+        elementos.append(fila("TOTAL ACTIVO NO CORRIENTE", total_anc, bold=True))
+        elementos.append(Spacer(1, 8))
+
+        total_activo = total_ac + total_anc
+        elementos.append(fila("TOTAL ACTIVO", total_activo, bold=True))
+        elementos.append(Spacer(1, 20))
+
+        # =============== PASIVO ===============
+        elementos.append(Paragraph("<b>PASIVO</b>", seccion_titulo))
+
+        elementos.append(Paragraph("<b>PASIVO CORRIENTE</b>", seccion_titulo))
+
+        pasivo_corr = [
+            ("Préstamos por pagar a corto plazo", float(self.datos.get("PASIVOS_Prestamos_por_pagar_a_corto_plazo", 0))),
+            ("Préstamos a partes relacionadas corto plazo", float(self.datos.get("PASIVOS_Prestamos_a_partes_relacionadas_corto_plazo", 0))),
+            ("Préstamos porción corriente", float(self.datos.get("PASIVOS_Prestamos_a_partes_relacionadas_porcion_corriente", 0))),
+            ("Cuentas por pagar comerciales", float(self.datos.get("PASIVOS_Cuentas_por_pagar_comerciales", 0))),
+            ("Ingresos diferidos", float(self.datos.get("PASIVOS_Ingresos_diferidos", 0))),
+            ("Otras cuentas por pagar", float(self.datos.get("PASIVOS_Otras_cuentas_por_pagar", 0))),
+            ("Dividendos por pagar", float(self.datos.get("PASIVOS_Dividendos_por_pagar", 0))),
+        ]
+
+        total_pc = 0
+        for nombre, val in pasivo_corr:
+            elementos.append(fila(nombre, val))
+            total_pc += val
+
+        elementos.append(fila("TOTAL PASIVO CORRIENTE", total_pc, bold=True))
+        elementos.append(Spacer(1, 8))
+
+        elementos.append(Paragraph("<b>PASIVO NO CORRIENTE</b>", seccion_titulo))
+
+        pasivo_nc = float(self.datos.get("PASIVOS_Prestamos_a_partes_relacionadas_largo_plazo", 0))
+        elementos.append(fila("Préstamos largo plazo", pasivo_nc))
+        elementos.append(fila("TOTAL PASIVO NO CORRIENTE", pasivo_nc, bold=True))
+        elementos.append(Spacer(1, 8))
+
+        total_pasivo = total_pc + pasivo_nc
+        elementos.append(fila("TOTAL PASIVO", total_pasivo, bold=True))
+        elementos.append(Spacer(1, 20))
+
+        # =============== PATRIMONIO ===============
+        elementos.append(Paragraph("<b>PATRIMONIO </b>", seccion_titulo))
+
+        capital_social = float(self.datos.get("PATRIMONIO_Capital_social", 0))
+        capital_min = float(self.datos.get("PATRIMONIO_Capital_social_minimo", 0))
+        reserva_legal = float(self.datos.get("PATRIMONIO_Reserva_legal", 0))
+        deficit = float(self.datos.get("PATRIMONIO_Deficit_acumulado", 0))
+
+        elementos.append(fila("Capital social", capital_social))
+        elementos.append(fila("Capital social mínimo", capital_min))
+        elementos.append(fila("Reserva legal", reserva_legal))
+        elementos.append(fila("Déficit acumulado", -deficit))
+
+        total_patri = capital_social + reserva_legal - deficit
+        elementos.append(fila("TOTAL PATRIMONIO", total_patri, bold=True))
+        elementos.append(Spacer(1, 10))
+
+        total_final = total_pasivo + total_patri
+        elementos.append(fila("TOTAL PASIVO Y PATRIMONIO", total_final, bold=True))
+
+        # ----- GENERAR PDF -----
+        doc.build(elementos)
+
+        messagebox.showinfo("PDF Generado", f"Se creó el archivo:\n{nombre_archivo}")
 
 def generar_balance_general(parent, datos_financieros):
     """Función principal para generar el balance general"""
