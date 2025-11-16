@@ -227,6 +227,21 @@ class AnalisisVerticalEstadoResultados:
         otros_gastos = float(self.datos.get('GASTOS_Otros_Gastos', 0))
         ingresos_financieros = float(self.datos.get('INGRESOS_Ingresos_Financieros', 0))
         
+        custom_accounts = self.datos.get("_cuentas_personalizadas", {})
+        custom_ingresos_operacionales = [k for k, v in custom_accounts.items() if v.get("tipo") == "INGRESOS" and v.get("subrubro") == "Ingresos Operacionales"]
+        custom_ingresos_financieros = [k for k, v in custom_accounts.items() if v.get("tipo") == "INGRESOS" and v.get("subrubro") == "Ingresos Financieros"]
+        custom_gastos_operacionales = [k for k, v in custom_accounts.items() if v.get("tipo") == "GASTOS" and v.get("subrubro") == "Gastos Operacionales"]
+        custom_gastos_financieros = [k for k, v in custom_accounts.items() if v.get("tipo") == "GASTOS" and v.get("subrubro") == "Gastos Financieros"]
+        
+        for clave in custom_ingresos_operacionales:
+            ventas += float(self.datos.get(clave, 0))
+        for clave in custom_ingresos_financieros:
+            ingresos_financieros += float(self.datos.get(clave, 0))
+        for clave in custom_gastos_operacionales:
+            gastos_admin += float(self.datos.get(clave, 0))
+        for clave in custom_gastos_financieros:
+            gastos_financieros += float(self.datos.get(clave, 0))
+        
         total_ingresos = ventas + ingresos_servicios + otros_ingresos
         if total_ingresos == 0:
             total_ingresos = 1
@@ -264,11 +279,11 @@ class AnalisisVerticalEstadoResultados:
         self.crear_fila_vertical(parent, "Otros Gastos", abs(otros_gastos), (abs(otros_gastos)/total_ingresos)*100, row, indent=True)
         row += 1
         
-        total_gastos_operacionales = abs(gastos_admin) + abs(gastos_ventas) + abs(otros_gastos)
+        total_gastos_operacionales = (gastos_admin) + (gastos_ventas) + (otros_gastos)
         self.crear_fila_vertical(parent, "TOTAL GASTOS OPERACIONALES", total_gastos_operacionales, (total_gastos_operacionales/total_ingresos)*100, row, es_total=True)
         row += 2
         
-        utilidad_operativa = utilidad_bruta - total_gastos_operacionales
+        utilidad_operativa = utilidad_bruta - abs(total_gastos_operacionales)
         self.crear_fila_vertical(parent, "UTILIDAD (PÉRDIDA) OPERATIVA", utilidad_operativa, (utilidad_operativa/total_ingresos)*100, row, es_total=True)
         row += 2
         
@@ -288,12 +303,11 @@ class AnalisisVerticalEstadoResultados:
         self.crear_fila_vertical(parent, "UTILIDAD (PÉRDIDA) ANTES DE IMPUESTOS", utilidad_antes_impuestos, (utilidad_antes_impuestos/total_ingresos)*100, row, es_total=True)
         row += 2
         
-        impuestos_tasa = 0.30
-        impuestos = utilidad_antes_impuestos * impuestos_tasa if utilidad_antes_impuestos > 0 else 0
+        impuestos = float(self.datos.get('GASTOS_Impuesto_sobre_la_Renta', 0))
         self.crear_fila_vertical(parent, "(-) Impuesto sobre la Renta (30%)", impuestos, (impuestos/total_ingresos)*100, row)
         row += 1
         
-        utilidad_neta = utilidad_antes_impuestos - impuestos
+        utilidad_neta = utilidad_antes_impuestos - abs(impuestos)
         self.crear_fila_vertical(parent, "UTILIDAD NETA DEL EJERCICIO", utilidad_neta, (utilidad_neta/total_ingresos)*100, row, es_total=True)
     
     def exportar_pdf(self):
@@ -344,13 +358,13 @@ class AnalisisVerticalEstadoResultados:
 
         contenido = []
 
-        # ------------ TITULO CENTRADO ------------
+        # ---------------- CABECERA ----------------
         contenido.append(Paragraph("Análisis Vertical - Estado de Resultados", estilo_titulo))
         contenido.append(Paragraph(f"<b>{nombre_empresa}</b>", estilo_subtitulo))
         contenido.append(Paragraph(f"Año: {anio} &nbsp;&nbsp;&nbsp;|&nbsp;&nbsp;&nbsp; Moneda: {moneda}", estilo_subtitulo))
         contenido.append(Spacer(1, 12))
 
-        # ------------ FUNCIONES AUXILIARES ------------
+        # ---------------- FUNCIONES AUXILIARES ----------------
         def agregar_seccion(titulo):
             contenido.append(Spacer(1, 8))
             contenido.append(Paragraph(f"<b>{titulo}</b>", estilo_seccion))
@@ -376,87 +390,89 @@ class AnalisisVerticalEstadoResultados:
             contenido.append(tabla)
             contenido.append(Spacer(1, 12))
 
-        # ------------ OBTENER DATOS ------------
+        # =====================================================
+        # ===============  CALCULOS IDENTICOS A LA VENTANA  ===
+        # =====================================================
+
         ventas = float(self.datos.get('INGRESOS_Ventas', 0))
         ingresos_servicios = float(self.datos.get('INGRESOS_Ingresos_por_Servicios', 0))
         otros_ingresos = float(self.datos.get('INGRESOS_Otros_Ingresos', 0))
-        costo_ventas = abs(float(self.datos.get('GASTOS_Costo_de_Ventas', 0)))
-
-        gastos_admin = abs(float(self.datos.get('GASTOS_Gastos_Administrativos', 0)))
-        gastos_ventas = abs(float(self.datos.get('GASTOS_Gastos_de_Ventas', 0)))
-        otros_gastos = abs(float(self.datos.get('GASTOS_Otros_Gastos', 0)))
-
+        costo_ventas = float(self.datos.get('GASTOS_Costo_de_Ventas', 0))
+        gastos_admin = float(self.datos.get('GASTOS_Gastos_Administrativos', 0))
+        gastos_ventas = float(self.datos.get('GASTOS_Gastos_de_Ventas', 0))
+        gastos_financieros = float(self.datos.get('GASTOS_Gastos_Financieros', 0))
+        otros_gastos = float(self.datos.get('GASTOS_Otros_Gastos', 0))
         ingresos_financieros = float(self.datos.get('INGRESOS_Ingresos_Financieros', 0))
-        gastos_financieros = abs(float(self.datos.get('GASTOS_Gastos_Financieros', 0)))
 
-        # TOTAL INGRESOS = 100%
+        custom_accounts = self.datos.get("_cuentas_personalizadas", {})
+        custom_ingresos_operacionales = [k for k, v in custom_accounts.items() if v.get("tipo") == "INGRESOS" and v.get("subrubro") == "Ingresos Operacionales"]
+        custom_ingresos_financieros = [k for k, v in custom_accounts.items() if v.get("tipo") == "INGRESOS" and v.get("subrubro") == "Ingresos Financieros"]
+        custom_gastos_operacionales = [k for k, v in custom_accounts.items() if v.get("tipo") == "GASTOS" and v.get("subrubro") == "Gastos Operacionales"]
+        custom_gastos_financieros = [k for k, v in custom_accounts.items() if v.get("tipo") == "GASTOS" and v.get("subrubro") == "Gastos Financieros"]
+
+        for clave in custom_ingresos_operacionales:
+            ventas += float(self.datos.get(clave, 0))
+        for clave in custom_ingresos_financieros:
+            ingresos_financieros += float(self.datos.get(clave, 0))
+        for clave in custom_gastos_operacionales:
+            gastos_admin += float(self.datos.get(clave, 0))
+        for clave in custom_gastos_financieros:
+            gastos_financieros += float(self.datos.get(clave, 0))
+
         total_ingresos = ventas + ingresos_servicios + otros_ingresos
         if total_ingresos == 0:
             total_ingresos = 1
 
-        # ------------ TABLA: INGRESOS ------------
-        agregar_seccion("INGRESOS OPERACIONALES")
+        utilidad_bruta = total_ingresos - abs(costo_ventas)
+        total_gastos_operacionales = (gastos_admin + gastos_ventas + otros_gastos)
+        utilidad_operativa = utilidad_bruta - abs(total_gastos_operacionales)
+        resultado_financiero = ingresos_financieros - abs(gastos_financieros)
+        utilidad_antes_impuestos = utilidad_operativa + resultado_financiero
+        impuestos = float(self.datos.get('GASTOS_Impuesto_sobre_la_Renta', 0))
+        utilidad_neta = utilidad_antes_impuestos - abs(impuestos)
 
-        tabla_ingresos = [
+        # =====================================================
+        # ===============  TABLAS IDENTICAS AL GUI  ===========
+        # =====================================================
+
+        agregar_seccion("INGRESOS OPERACIONALES")
+        agregar_tabla([
             ("Ventas", f"$ {ventas:,.2f}", f"{(ventas/total_ingresos)*100:.2f}%"),
             ("Ingresos por Servicios", f"$ {ingresos_servicios:,.2f}", f"{(ingresos_servicios/total_ingresos)*100:.2f}%"),
             ("Otros Ingresos", f"$ {otros_ingresos:,.2f}", f"{(otros_ingresos/total_ingresos)*100:.2f}%"),
             ("TOTAL INGRESOS", f"$ {total_ingresos:,.2f}", "100%"),
-        ]
-        agregar_tabla(tabla_ingresos)
-
-        # ------------ COSTO DE VENTAS ------------
-        utilidad_bruta = total_ingresos - costo_ventas
+        ])
 
         agregar_seccion("COSTO DE VENTAS / UTILIDAD BRUTA")
-        tabla_costo = [
-            ("Costo de Ventas", f"$ {costo_ventas:,.2f}", f"{(costo_ventas/total_ingresos)*100:.2f}%"),
+        agregar_tabla([
+            ("Costo de Ventas", f"$ {abs(costo_ventas):,.2f}", f"{(abs(costo_ventas)/total_ingresos)*100:.2f}%"),
             ("UTILIDAD BRUTA", f"$ {utilidad_bruta:,.2f}", f"{(utilidad_bruta/total_ingresos)*100:.2f}%"),
-        ]
-        agregar_tabla(tabla_costo)
-
-        # ------------ GASTOS OPERACIONALES ------------
-        total_gastos_oper = gastos_admin + gastos_ventas + otros_gastos
-        utilidad_operativa = utilidad_bruta - total_gastos_oper
+        ])
 
         agregar_seccion("GASTOS OPERACIONALES")
-
-        tabla_gastos = [
-            ("Gastos Administrativos", f"$ {gastos_admin:,.2f}", f"{(gastos_admin/total_ingresos)*100:.2f}%"),
-            ("Gastos de Ventas", f"$ {gastos_ventas:,.2f}", f"{(gastos_ventas/total_ingresos)*100:.2f}%"),
-            ("Otros Gastos", f"$ {otros_gastos:,.2f}", f"{(otros_gastos/total_ingresos)*100:.2f}%"),
-            ("TOTAL GASTOS OPERACIONALES", f"$ {total_gastos_oper:,.2f}", f"{(total_gastos_oper/total_ingresos)*100:.2f}%"),
+        agregar_tabla([
+            ("Gastos Administrativos", f"$ {abs(gastos_admin):,.2f}", f"{(abs(gastos_admin)/total_ingresos)*100:.2f}%"),
+            ("Gastos de Ventas", f"$ {abs(gastos_ventas):,.2f}", f"{(abs(gastos_ventas)/total_ingresos)*100:.2f}%"),
+            ("Otros Gastos", f"$ {abs(otros_gastos):,.2f}", f"{(abs(otros_gastos)/total_ingresos)*100:.2f}%"),
+            ("TOTAL GASTOS OPERACIONALES", f"$ {total_gastos_operacionales:,.2f}", f"{(total_gastos_operacionales/total_ingresos)*100:.2f}%"),
             ("UTILIDAD OPERATIVA", f"$ {utilidad_operativa:,.2f}", f"{(utilidad_operativa/total_ingresos)*100:.2f}%"),
-        ]
-        agregar_tabla(tabla_gastos)
-
-        # ------------ INGRESOS Y GASTOS FINANCIEROS ------------
-        resultado_financiero = ingresos_financieros - gastos_financieros
-        utilidad_antes_impuestos = utilidad_operativa + resultado_financiero
+        ])
 
         agregar_seccion("INGRESOS Y GASTOS FINANCIEROS")
-
-        tabla_financieros = [
+        agregar_tabla([
             ("Ingresos Financieros", f"$ {ingresos_financieros:,.2f}", f"{(ingresos_financieros/total_ingresos)*100:.2f}%"),
-            ("Gastos Financieros", f"$ {gastos_financieros:,.2f}", f"{(gastos_financieros/total_ingresos)*100:.2f}%"),
+            ("Gastos Financieros", f"$ {abs(gastos_financieros):,.2f}", f"{(abs(gastos_financieros)/total_ingresos)*100:.2f}%"),
             ("Resultado Financiero Neto", f"$ {resultado_financiero:,.2f}", f"{(resultado_financiero/total_ingresos)*100:.2f}%"),
             ("UTILIDAD ANTES DE IMPUESTOS", f"$ {utilidad_antes_impuestos:,.2f}", f"{(utilidad_antes_impuestos/total_ingresos)*100:.2f}%"),
-        ]
-        agregar_tabla(tabla_financieros)
-
-        # ------------ IMPUESTOS Y UTILIDAD NETA ------------
-        impuestos = utilidad_antes_impuestos * 0.30 if utilidad_antes_impuestos > 0 else 0
-        utilidad_neta = utilidad_antes_impuestos - impuestos
+        ])
 
         agregar_seccion("IMPUESTOS Y UTILIDAD NETA")
-
-        tabla_final = [
+        agregar_tabla([
             ("Impuesto sobre la Renta (30%)", f"$ {impuestos:,.2f}", f"{(impuestos/total_ingresos)*100:.2f}%"),
             ("UTILIDAD NETA DEL EJERCICIO", f"$ {utilidad_neta:,.2f}", f"{(utilidad_neta/total_ingresos)*100:.2f}%"),
-        ]
-        agregar_tabla(tabla_final)
+        ])
 
-        # ------------ CREAR PDF ------------
+        # ---------------- CREAR PDF ----------------
         doc.build(contenido)
 
         messagebox.showinfo(

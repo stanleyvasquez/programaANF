@@ -2,15 +2,23 @@ import tkinter as tk
 from tkinter import messagebox, ttk
 
 class IngresoFinanciero:
+    _ventana_abierta = None  # Class variable to track open window
+    
     def __init__(self, parent_app):
         self.parent_app = parent_app
-        self.entries = {}  # Diccionario para almacenar todos los campos de entrada
-        self.cuentas_personalizadas = {}  # agregado para almacenar cuentas personalizadas temporalmente
-       
+        self.entries = {}
+        self.cuentas_personalizadas = {}
+        self.abrir_ventana()
     
     def abrir_ventana(self):
         """Abre la ventana de ingreso de datos financieros"""
+        if IngresoFinanciero._ventana_abierta is not None and IngresoFinanciero._ventana_abierta.winfo_exists():
+            IngresoFinanciero._ventana_abierta.lift()  # Bring window to front
+            return
+        
         ventana_ingreso = tk.Toplevel(self.parent_app.root)
+        IngresoFinanciero._ventana_abierta = ventana_ingreso  # Store reference
+        
         ventana_ingreso.title("Ingresar Datos Financieros")
         ventana_ingreso.geometry("950x700")
         ventana_ingreso.config(bg=self.parent_app.bg_principal)
@@ -67,6 +75,7 @@ class IngresoFinanciero:
                 canvas.unbind_all("<MouseWheel>")
             except:
                 pass
+            IngresoFinanciero._ventana_abierta = None  # Clear reference
             ventana_ingreso.destroy()
         
         ventana_ingreso.protocol("WM_DELETE_WINDOW", on_closing)
@@ -353,6 +362,16 @@ class IngresoFinanciero:
         
         frame_campos = tk.Frame(frame_seccion, bg=self.parent_app.bg_secundario)
         frame_campos.pack(fill="both", padx=12, pady=10)
+        
+        if titulo in ["GASTOS", "INGRESOS"]:
+            label_ayuda = tk.Label(
+                frame_campos,
+                text="💡 Nota: Valores de GASTOS deben ser negativos (ej: -1000)",
+                font=("Segoe UI", 8, "italic"),
+                bg=self.parent_app.bg_secundario,
+                fg="#94a3b8"
+            )
+            label_ayuda.pack(fill="x", pady=(0, 8))
         
         for item in campos:
             if isinstance(item, dict):

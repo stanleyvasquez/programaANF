@@ -2,14 +2,23 @@ import tkinter as tk
 from tkinter import messagebox, ttk
 
 class EdicionFinanciero:
+    _ventana_seleccion_abierta = None  # Class variable for selection window
+    _ventana_edicion_abierta = None    # Class variable for edit window
+    
     def __init__(self, parent_app):
         self.parent_app = parent_app
-        self.entries = {}  # Diccionario para almacenar todos los campos de entrada
-        self.datos_actuales = None  # Almacenará los datos del registro seleccionado
+        self.entries = {}
+        self.datos_actuales = None
         
     def abrir_ventana(self):
         """Abre la ventana de selección de registro para editar"""
+        if EdicionFinanciero._ventana_seleccion_abierta is not None and EdicionFinanciero._ventana_seleccion_abierta.winfo_exists():
+            EdicionFinanciero._ventana_seleccion_abierta.lift()  # Bring window to front
+            return
+        
         ventana_seleccion = tk.Toplevel(self.parent_app.root)
+        EdicionFinanciero._ventana_seleccion_abierta = ventana_seleccion  # Store reference
+        
         ventana_seleccion.title("Editar Datos Financieros")
         ventana_seleccion.geometry("1000x600")
         ventana_seleccion.config(bg=self.parent_app.bg_principal)
@@ -140,6 +149,7 @@ class EdicionFinanciero:
             self.indice_actual = indice
             
             # Cerrar ventana de selección y abrir ventana de edición
+            EdicionFinanciero._ventana_seleccion_abierta = None  # Clear selection reference
             ventana_seleccion.destroy()
             self.abrir_formulario_edicion()
         
@@ -175,13 +185,30 @@ class EdicionFinanciero:
             borderwidth=0,
             activebackground=self.parent_app.ajustar_color("#6c7a89", 1.2),
             activeforeground="white",
-            command=ventana_seleccion.destroy
+            command=lambda: self._on_closing_selection(ventana_seleccion)
         )
         btn_cerrar.pack(side="right", padx=10, expand=True)
+        
+        def on_close_window():
+            EdicionFinanciero._ventana_seleccion_abierta = None  # Clear reference on close
+            ventana_seleccion.destroy()
+        
+        ventana_seleccion.protocol("WM_DELETE_WINDOW", on_close_window)
+    
+    def _on_closing_selection(self, ventana):
+        """Helper method to clear reference when closing"""
+        EdicionFinanciero._ventana_seleccion_abierta = None
+        ventana.destroy()
     
     def abrir_formulario_edicion(self):
         """Abre el formulario de edición con los datos pre-cargados"""
+        if EdicionFinanciero._ventana_edicion_abierta is not None and EdicionFinanciero._ventana_edicion_abierta.winfo_exists():
+            EdicionFinanciero._ventana_edicion_abierta.lift()  # Bring window to front
+            return
+        
         ventana_edicion = tk.Toplevel(self.parent_app.root)
+        EdicionFinanciero._ventana_edicion_abierta = ventana_edicion  # Store reference
+        
         ventana_edicion.title("Editar Datos Financieros")
         ventana_edicion.geometry("950x700")
         ventana_edicion.config(bg=self.parent_app.bg_principal)
@@ -211,21 +238,19 @@ class EdicionFinanciero:
         
         def _on_mousewheel(event):
             try:
-                # Verificar que el canvas todavía existe antes de hacer scroll
                 if canvas.winfo_exists():
                     canvas.yview_scroll(int(-1*(event.delta/120)), "units")
             except tk.TclError:
-                # Ignorar el error si el canvas ya fue destruido
                 pass
         
         canvas.bind_all("<MouseWheel>", _on_mousewheel)
         
-        # Limpiar binding cuando se cierre la ventana
         def on_closing():
             try:
                 canvas.unbind_all("<MouseWheel>")
             except:
                 pass
+            EdicionFinanciero._ventana_edicion_abierta = None  # Clear reference
             ventana_edicion.destroy()
         
         ventana_edicion.protocol("WM_DELETE_WINDOW", on_closing)

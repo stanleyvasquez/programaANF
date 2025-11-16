@@ -256,6 +256,21 @@ class AnalisisDuPont:
         otros_gastos = float(self.datos.get('GASTOS_Otros_Gastos', 0))
         impuestos = float(self.datos.get('GASTOS_Impuesto_sobre_la_Renta', 0))
         
+        custom_accounts = self.datos.get("_cuentas_personalizadas", {})
+        custom_ingresos_operacionales = [k for k, v in custom_accounts.items() if v.get("tipo") == "INGRESOS" and v.get("subrubro") == "Ingresos Operacionales"]
+        custom_ingresos_financieros = [k for k, v in custom_accounts.items() if v.get("tipo") == "INGRESOS" and v.get("subrubro") == "Ingresos Financieros"]
+        custom_gastos_operacionales = [k for k, v in custom_accounts.items() if v.get("tipo") == "GASTOS" and v.get("subrubro") == "Gastos Operacionales"]
+        custom_gastos_financieros = [k for k, v in custom_accounts.items() if v.get("tipo") == "GASTOS" and v.get("subrubro") == "Gastos Financieros"]
+        
+        for clave in custom_ingresos_operacionales:
+            ventas += float(self.datos.get(clave, 0))
+        for clave in custom_ingresos_financieros:
+            ingresos_financieros += float(self.datos.get(clave, 0))
+        for clave in custom_gastos_operacionales:
+            gastos_admin += float(self.datos.get(clave, 0))
+        for clave in custom_gastos_financieros:
+            gastos_financieros += float(self.datos.get(clave, 0))
+        
         # Datos del Balance General
         efectivo = float(self.datos.get('ACTIVOS_Efectivo', 0))
         cuentas_cobrar = float(self.datos.get('ACTIVOS_Cuentas_por_cobrar_comerciales', 0))
@@ -273,13 +288,33 @@ class AnalisisDuPont:
         reserva_legal = float(self.datos.get('PATRIMONIO_Reserva_legal', 0))
         deficit = float(self.datos.get('PATRIMONIO_Deficit_acumulado', 0))
         
-        # Cálculos de totales
+         # Cálculos de totales (MISMA LÓGICA QUE EL ESTADO DE RESULTADOS)
+
+        # 1. Total ingresos
         total_ingresos = ventas + ingresos_servicios + otros_ingresos
-        total_gastos_operacionales = abs(costo_ventas) + abs(gastos_admin) + abs(gastos_ventas) + abs(otros_gastos)
-        utilidad_operativa = total_ingresos - total_gastos_operacionales
+
+        # 2. Utilidad bruta
+        utilidad_bruta = total_ingresos - abs(costo_ventas)
+
+        # 3. Gastos operacionales (pueden venir en negativo)
+        total_gastos_operacionales = gastos_admin + gastos_ventas + otros_gastos
+
+        # 4. Utilidad operativa (misma condición que en EstadoResultados)
+        if total_gastos_operacionales < 0:
+            utilidad_operativa = utilidad_bruta - abs(total_gastos_operacionales)
+        else:
+            utilidad_operativa = utilidad_bruta - total_gastos_operacionales
+
+        # 5. Resultado financiero
         resultado_financiero = ingresos_financieros - abs(gastos_financieros)
+
+        # 6. Utilidad antes de impuestos
         utilidad_antes_impuestos = utilidad_operativa + resultado_financiero
-        utilidad_neta = utilidad_antes_impuestos - abs(impuestos)
+
+        # 7. Utilidad neta (igual que en EstadoResultados)
+        utilidad_neta = utilidad_antes_impuestos - abs(impuestos )
+
+
         
         total_activo_corriente = efectivo + cuentas_cobrar + prestamos_cobrar + inventarios + gastos_anticipados
         total_activo_no_corriente = propiedades + intangibles + impuesto_diferido + otros_activos
@@ -452,7 +487,8 @@ class AnalisisDuPont:
             contenido.append(Paragraph(texto, estilo_formula))
             contenido.append(Spacer(1, 4))
 
-        # ------------ OBTENER DATOS (igual que en tu clase) ------------
+        # ------------ OBTENER DATOS (MISMO CRITERIO QUE EN EL GUI) ------------
+        # Estado de resultados
         ventas = float(self.datos.get('INGRESOS_Ventas', 0))
         ingresos_servicios = float(self.datos.get('INGRESOS_Ingresos_por_Servicios', 0))
         otros_ingresos = float(self.datos.get('INGRESOS_Otros_Ingresos', 0))
@@ -465,7 +501,22 @@ class AnalisisDuPont:
         otros_gastos = float(self.datos.get('GASTOS_Otros_Gastos', 0))
         impuestos = float(self.datos.get('GASTOS_Impuesto_sobre_la_Renta', 0))
 
-        # Balance
+        custom_accounts = self.datos.get("_cuentas_personalizadas", {})
+        custom_ingresos_operacionales = [k for k, v in custom_accounts.items() if v.get("tipo") == "INGRESOS" and v.get("subrubro") == "Ingresos Operacionales"]
+        custom_ingresos_financieros = [k for k, v in custom_accounts.items() if v.get("tipo") == "INGRESOS" and v.get("subrubro") == "Ingresos Financieros"]
+        custom_gastos_operacionales = [k for k, v in custom_accounts.items() if v.get("tipo") == "GASTOS" and v.get("subrubro") == "Gastos Operacionales"]
+        custom_gastos_financieros = [k for k, v in custom_accounts.items() if v.get("tipo") == "GASTOS" and v.get("subrubro") == "Gastos Financieros"]
+
+        for clave in custom_ingresos_operacionales:
+            ventas += float(self.datos.get(clave, 0))
+        for clave in custom_ingresos_financieros:
+            ingresos_financieros += float(self.datos.get(clave, 0))
+        for clave in custom_gastos_operacionales:
+            gastos_admin += float(self.datos.get(clave, 0))
+        for clave in custom_gastos_financieros:
+            gastos_financieros += float(self.datos.get(clave, 0))
+
+        # Balance general
         efectivo = float(self.datos.get('ACTIVOS_Efectivo', 0))
         cuentas_cobrar = float(self.datos.get('ACTIVOS_Cuentas_por_cobrar_comerciales', 0))
         prestamos_cobrar = float(self.datos.get('ACTIVOS_Prestamos_por_cobrar_a_partes_relacionadas', 0))
@@ -481,22 +532,46 @@ class AnalisisDuPont:
         reserva_legal = float(self.datos.get('PATRIMONIO_Reserva_legal', 0))
         deficit = float(self.datos.get('PATRIMONIO_Deficit_acumulado', 0))
 
+        # ------------ CÁLCULOS DUPONT (CLON DEL GUI) ------------
+
+        # 1. Total ingresos
         total_ingresos = ventas + ingresos_servicios + otros_ingresos
-        total_gastos_oper = abs(costo_ventas) + abs(gastos_admin) + abs(gastos_ventas) + abs(otros_gastos)
-        utilidad_operativa = total_ingresos - total_gastos_oper
+
+        # 2. Utilidad bruta
+        utilidad_bruta = total_ingresos - abs(costo_ventas)
+
+        # 3. Gastos operacionales (pueden venir en negativo)
+        total_gastos_operacionales = gastos_admin + gastos_ventas + otros_gastos
+
+        # 4. Utilidad operativa (misma lógica que en crear_analisis_dupont)
+        if total_gastos_operacionales < 0:
+            utilidad_operativa = utilidad_bruta - abs(total_gastos_operacionales)
+        else:
+            utilidad_operativa = utilidad_bruta - total_gastos_operacionales
+
+        # 5. Resultado financiero
         resultado_financiero = ingresos_financieros - abs(gastos_financieros)
+
+        # 6. Utilidad antes de impuestos
         utilidad_antes_impuestos = utilidad_operativa + resultado_financiero
+
+        # 7. Utilidad neta (igual que en el GUI de DuPont)
         utilidad_neta = utilidad_antes_impuestos - abs(impuestos)
 
+        # Activos y patrimonio
         total_activo_corriente = efectivo + cuentas_cobrar + prestamos_cobrar + inventarios + gastos_anticipados
         total_activo_no_corriente = propiedades + intangibles + impuesto_diferido + otros_activos
         activos_totales = total_activo_corriente + total_activo_no_corriente
 
         patrimonio = capital_social + reserva_legal - deficit
 
-        if ventas == 0: ventas = 1
-        if activos_totales == 0: activos_totales = 1
-        if patrimonio == 0: patrimonio = 1
+        # Evitar divisiones entre cero
+        if ventas == 0:
+            ventas = 1
+        if activos_totales == 0:
+            activos_totales = 1
+        if patrimonio == 0:
+            patrimonio = 1
 
         margen_neto = (utilidad_neta / ventas) * 100
         rotacion_activos = ventas / activos_totales
@@ -527,7 +602,7 @@ class AnalisisDuPont:
         ]
         agregar_tabla(tabla_componentes)
 
-        # ------------ FORMULAS ------------
+        # ------------ FÓRMULAS ------------
         agregar_seccion("FÓRMULAS UTILIZADAS")
 
         agregar_formula("Margen Neto = (Utilidad Neta / Ventas) × 100")
@@ -543,6 +618,7 @@ class AnalisisDuPont:
             "PDF generado",
             f"El archivo PDF fue creado exitosamente:\n\n{archivo_pdf}"
         )
+
 
 def generar_analisis_dupont(parent, datos_financieros, app_instance=None):
     """Función principal para generar el análisis DuPont"""

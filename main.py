@@ -35,6 +35,9 @@ class AnalisisFinancieroApp:
         
         self.registros_financieros = []
         
+        self.ventana_reportes_abierta = None
+        self.ventana_seleccion_abierta = None
+        
         self.cargar_desde_archivo()
         
         # Crear interfaz
@@ -239,7 +242,13 @@ class AnalisisFinancieroApp:
         edicion.abrir_ventana()
 
     def generar_reportes(self):
+        if self.ventana_reportes_abierta is not None and self.ventana_reportes_abierta.winfo_exists():
+            self.ventana_reportes_abierta.lift()  # Traer ventana al frente
+            return
+        
         ventana_reportes = tk.Toplevel(self.root)
+        self.ventana_reportes_abierta = ventana_reportes  # Guardar referencia
+        
         ventana_reportes.title("Generar Reportes Financieros")
         ventana_reportes.geometry("850x700")
         ventana_reportes.config(bg=self.bg_principal)
@@ -301,6 +310,7 @@ class AnalisisFinancieroApp:
         
         def on_closing():
             canvas.unbind_all("<MouseWheel>")
+            self.ventana_reportes_abierta = None  # Limpiar referencia
             ventana_reportes.destroy()
         
         ventana_reportes.protocol("WM_DELETE_WINDOW", on_closing)
@@ -335,21 +345,32 @@ class AnalisisFinancieroApp:
                 "descripcion": "ROE (Retorno sobre Patrimonio) descompuesto en margen, rotación y apalancamiento",
                 "comando": self.generar_analisis_dupont
             },
-            {
-                "titulo": "📋 Resumen Ejecutivo",
-                "descripcion": "Resumen completo de todos los análisis y conclusiones",
-                "comando": self.generar_resumen_ejecutivo
-            }
+         
         ]
         
         for reporte in reportes:
             self.crear_boton_reporte(frame_principal, reporte["titulo"], 
-                                    reporte["descripcion"], reporte["comando"])
+                                    reporte["descripcion"], reporte["comando"], ventana_reportes)
         
         frame_footer = tk.Frame(ventana_reportes, bg=self.bg_principal)
         frame_footer.pack(fill="x", padx=30, pady=(10, 20))
         
-     
+        btn_cerrar = tk.Button(
+            frame_footer,
+            text="✕ Cerrar",
+            font=("Segoe UI", 11, "bold"),
+            bg=self.color_peligro,
+            fg="white",
+            cursor="hand2",
+            relief="flat",
+            padx=30,
+            pady=10,
+            borderwidth=0,
+            activebackground=self.ajustar_color(self.color_peligro, 1.2),
+            activeforeground="white",
+            command=on_closing
+        )
+        btn_cerrar.pack(side="right")
         
         btn_cancelar = tk.Button(
             frame_footer,
@@ -365,9 +386,9 @@ class AnalisisFinancieroApp:
             padx=30,
             pady=10
         )
-        btn_cancelar.pack(side="right", padx=(0, 10))
+        
     
-    def crear_boton_reporte(self, parent, titulo, descripcion, comando):
+    def crear_boton_reporte(self, parent, titulo, descripcion, comando, ventana_padre):
         """Crea un botón estilizado para cada tipo de reporte"""
         frame_boton = tk.Frame(parent, bg=self.color_acento, cursor="hand2", 
                               highlightthickness=0, relief="flat")
@@ -416,7 +437,7 @@ class AnalisisFinancieroApp:
         label_desc.bind("<Enter>", on_enter)
         label_desc.bind("<Leave>", on_leave)
         label_desc.bind("<Button-1>", lambda e: comando())
-    
+
     def generar_balance_general(self):
         self.cargar_desde_archivo()
         
@@ -515,7 +536,13 @@ class AnalisisFinancieroApp:
     
     def seleccionar_registro_para_reporte(self, nombre_reporte, funcion_reporte):
         """Permite seleccionar un registro cuando hay múltiples registros disponibles"""
+        if self.ventana_seleccion_abierta is not None and self.ventana_seleccion_abierta.winfo_exists():
+            self.ventana_seleccion_abierta.lift()  # Traer ventana al frente
+            return
+        
         ventana_seleccion = tk.Toplevel(self.root)
+        self.ventana_seleccion_abierta = ventana_seleccion  # Guardar referencia
+        
         ventana_seleccion.title(f"Seleccionar Registro - {nombre_reporte}")
         ventana_seleccion.geometry("700x500")
         ventana_seleccion.config(bg=self.bg_principal)
@@ -661,8 +688,15 @@ class AnalisisFinancieroApp:
             
             idx = int(seleccion[0])
             registro = self.registros_financieros[idx]
+            self.ventana_seleccion_abierta = None  # Limpiar referencia
             ventana_seleccion.destroy()
             funcion_reporte(self.root, registro, self)
+        
+        def on_closing():
+            self.ventana_seleccion_abierta = None  # Limpiar referencia
+            ventana_seleccion.destroy()
+        
+        ventana_seleccion.protocol("WM_DELETE_WINDOW", on_closing)
         
         btn_generar = tk.Button(
             frame_botones,
@@ -683,7 +717,7 @@ class AnalisisFinancieroApp:
         btn_cancelar = tk.Button(
             frame_botones,
             text="✕ Cancelar",
-            command=ventana_seleccion.destroy,
+            command=on_closing,
             font=("Segoe UI", 11, "bold"),
             bg=self.color_peligro,
             fg="white",

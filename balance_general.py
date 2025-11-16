@@ -247,7 +247,7 @@ class BalanceGeneral:
         for clave in custom_corriente:
             valor = float(self.datos.get(clave, 0))
             nombre = custom_accounts[clave].get("nombre", clave)
-            self.crear_fila_cuenta(parent, nombre, valor, row, 0, indent=True)
+            self.crear_fila_cuenta(parent, f"{nombre} [Personalizada]", valor, row, 0, indent=True)
             row += 1
             efectivo += valor  # Include in total
         
@@ -278,9 +278,9 @@ class BalanceGeneral:
         for clave in custom_nocorriente:
             valor = float(self.datos.get(clave, 0))
             nombre = custom_accounts[clave].get("nombre", clave)
-            self.crear_fila_cuenta(parent, nombre, valor, row, 0, indent=True)
+            self.crear_fila_cuenta(parent, f"{nombre} [Personalizada]", valor, row, 0, indent=True)
             row += 1
-            propiedades += valor  # Include in total
+            propiedades += valor
         
         total_no_corriente = propiedades + intangibles + impuesto_diferido + otros_activos
         self.crear_fila_cuenta(parent, "TOTAL ACTIVO NO CORRIENTE", total_no_corriente, row, 0, es_total=True)
@@ -375,7 +375,7 @@ class BalanceGeneral:
         self.crear_fila_cuenta(parent, "TOTAL PASIVO Y PATRIMONIO", total_pasivo_patrimonio, row, 1, es_total=True)
     
     def exportar_pdf(self):
-        nombre_archivo = f"Balance_General_{self.datos.get('nombre_empresa','Empresa')}.pdf"
+        nombre_archivo = f"Balance_General_{self.datos.get('nombre_empresa','Empresa')}_{self.datos.get('anio','Año')}.pdf"
 
         # Documento con más margen a la derecha
         doc = SimpleDocTemplate(

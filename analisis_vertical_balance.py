@@ -244,6 +244,11 @@ class AnalisisVerticalBalance:
         inventarios = float(self.datos.get('ACTIVOS_Inventarios', 0))
         gastos_anticipados = float(self.datos.get('ACTIVOS_Gastos_pagados_por_anticipado', 0))
         
+        custom_accounts = self.datos.get("_cuentas_personalizadas", {})
+        custom_corriente = [k for k, v in custom_accounts.items() if v.get("tipo") == "ACTIVOS" and v.get("subrubro") == "Activo Corriente"]
+        for clave in custom_corriente:
+            efectivo += float(self.datos.get(clave, 0))
+        
         total_corriente = efectivo + cuentas_cobrar_com + prestamos_cobrar + inventarios + gastos_anticipados
         
         # ACTIVO NO CORRIENTE
@@ -251,6 +256,10 @@ class AnalisisVerticalBalance:
         intangibles = float(self.datos.get('ACTIVOS_Activos_intangibles', 0))
         impuesto_diferido = float(self.datos.get('ACTIVOS_Impuesto_sobre_la_renta_diferido', 0))
         otros_activos = float(self.datos.get('ACTIVOS_Otros_activos', 0))
+        
+        custom_nocorriente = [k for k, v in custom_accounts.items() if v.get("tipo") == "ACTIVOS" and v.get("subrubro") == "Activo No Corriente"]
+        for clave in custom_nocorriente:
+            propiedades += float(self.datos.get(clave, 0))
         
         total_no_corriente = propiedades + intangibles + impuesto_diferido + otros_activos
         total_activo = total_corriente + total_no_corriente

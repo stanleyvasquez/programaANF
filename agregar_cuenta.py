@@ -4,21 +4,21 @@ from tkinter import messagebox, ttk
 class AgregarCuenta:
     def __init__(self, parent_app, callback=None):
         self.parent_app = parent_app
-        self.callback = callback  # añadido callback para devolver datos
+        self.callback = callback
         
     def abrir_ventana(self):
         """Abre el asistente interactivo para agregar cuentas"""
         ventana_asistente = tk.Toplevel(self.parent_app.root)
         ventana_asistente.title("Agregar Cuenta Personalizada")
-        ventana_asistente.geometry("600x700")
+        ventana_asistente.geometry("600x750")
         ventana_asistente.config(bg=self.parent_app.bg_principal)
         ventana_asistente.resizable(False, False)
         
         # Centrar ventana
         ventana_asistente.update_idletasks()
         x = (ventana_asistente.winfo_screenwidth() // 2) - (300)
-        y = (ventana_asistente.winfo_screenheight() // 2) - (350)
-        ventana_asistente.geometry(f'600x700+{x}+{y}')
+        y = (ventana_asistente.winfo_screenheight() // 2) - (375)
+        ventana_asistente.geometry(f'600x750+{x}+{y}')
         
         # Header
         frame_header = tk.Frame(ventana_asistente, bg=self.parent_app.bg_secundario, height=60)
@@ -27,7 +27,7 @@ class AgregarCuenta:
         
         titulo = tk.Label(
             frame_header,
-            text="➕ Agregar Cuenta Personalizada",
+            text="Agregar Cuenta Personalizada",
             font=("Segoe UI", 16, "bold"),
             bg=self.parent_app.bg_secundario,
             fg=self.parent_app.color_texto
@@ -66,7 +66,9 @@ class AgregarCuenta:
         tipos_cuenta = [
             {"nombre": "🏦 ACTIVOS", "tipo": "ACTIVOS", "color": "#3498db"},
             {"nombre": "💳 PASIVOS", "tipo": "PASIVOS", "color": "#e74c3c"},
-            {"nombre": "💰 PATRIMONIO", "tipo": "PATRIMONIO", "color": "#2ecc71"}
+            {"nombre": "💰 PATRIMONIO", "tipo": "PATRIMONIO", "color": "#2ecc71"},
+            {"nombre": "📈 INGRESOS", "tipo": "INGRESOS", "color": "#f39c12"},
+            {"nombre": "📉 GASTOS", "tipo": "GASTOS", "color": "#9b59b6"}
         ]
         
         tipo_seleccionado = tk.StringVar()
@@ -103,7 +105,7 @@ class AgregarCuenta:
         
         subrubro_seleccionado = tk.StringVar()
         
-        def actualizar_subrubros():
+        def actualizar_subrubros(*args):
             # Limpiar los radiobuttons previos
             for widget in frame_subrubros.winfo_children():
                 widget.destroy()
@@ -122,6 +124,16 @@ class AgregarCuenta:
                 ]
             elif tipo == "PATRIMONIO":
                 opciones = [("Capital Contable", "Capital Contable")]
+            elif tipo == "INGRESOS":
+                opciones = [
+                    ("Ingresos Operacionales", "Ingresos Operacionales"),
+                    ("Ingresos Financieros", "Ingresos Financieros")
+                ]
+            elif tipo == "GASTOS":
+                opciones = [
+                    ("Gastos Operacionales", "Gastos Operacionales"),
+                    ("Gastos Financieros", "Gastos Financieros")
+                ]
             else:
                 opciones = []
             
@@ -145,7 +157,7 @@ class AgregarCuenta:
             if opciones:
                 subrubro_seleccionado.set(opciones[0][1])
         
-        tipo_seleccionado.trace("w", lambda *args: actualizar_subrubros())
+        tipo_seleccionado.trace("w", actualizar_subrubros)
         
         # Paso 3: Nombre de la cuenta
         label_paso3 = tk.Label(
@@ -177,6 +189,15 @@ class AgregarCuenta:
             fg=self.parent_app.color_acento
         )
         label_paso4.pack(anchor="w", pady=(0, 5))
+        
+        label_ayuda = tk.Label(
+            frame_scroll,
+            text="💡 Nota: Para GASTOS, ingresa valores negativos. Ej: -1000",
+            font=("Segoe UI", 8, "italic"),
+            bg=self.parent_app.bg_principal,
+            fg="#94a3b8"
+        )
+        label_ayuda.pack(anchor="w", pady=(0, 3))
         
         entry_valor = tk.Entry(
             frame_scroll,
