@@ -1,7 +1,11 @@
 import tkinter as tk
 from tkinter import ttk, messagebox
 from datetime import datetime
-
+from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, Table, TableStyle
+from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
+from reportlab.lib.pagesizes import letter
+from reportlab.lib import colors
+from reportlab.lib.units import inch
 class AnalisisVerticalBalance:
     def __init__(self, parent, datos_financieros):
         self.parent = parent
@@ -376,11 +380,194 @@ class AnalisisVerticalBalance:
         self.crear_fila_vertical(parent, "TOTAL PASIVO Y PATRIMONIO", total_pasivo_patrimonio, 100.0, row, 1, es_total=True)
     
     def exportar_pdf(self):
-        """Exporta el análisis vertical a PDF"""
+        
+        nombre_empresa = self.datos.get("nombre_empresa", "N/A")
+        anio = self.datos.get("anio", "N/A")
+        moneda = self.datos.get("tipo_moneda", "N/A")
+
+        archivo_pdf = f"Analisis_Vertical_Balance_{nombre_empresa}_{anio}.pdf"
+
+        doc = SimpleDocTemplate(
+            archivo_pdf,
+            pagesize=letter,
+            rightMargin=40,
+            leftMargin=40,
+            topMargin=40,
+            bottomMargin=40
+        )
+
+        estilos = getSampleStyleSheet()
+        estilo_titulo = ParagraphStyle(
+            name='Titulo',
+            parent=estilos['Heading1'],
+            alignment=1,
+            fontSize=18,
+            leading=22,
+            spaceAfter=10
+        )
+
+        estilo_subtitulo = ParagraphStyle(
+            name='Subtitulo',
+            parent=estilos['Normal'],
+            alignment=1,
+            fontSize=11,
+            leading=14,
+            spaceAfter=6
+        )
+
+        estilo_seccion = ParagraphStyle(
+            name='Seccion',
+            parent=estilos['Heading2'],
+            fontSize=12,
+            leading=14,
+            spaceAfter=6,
+            spaceBefore=12,
+            textColor=colors.black,
+            alignment=0,
+        )
+
+        estilo_tabla = ParagraphStyle(
+            name='TablaTexto',
+            parent=estilos['Normal'],
+            fontSize=9,
+            leading=12
+        )
+
+        contenido = []
+
+        # TÍTULO CENTRAL
+        contenido.append(Paragraph("Análisis Vertical - Balance General", estilo_titulo))
+
+        # Empresa y año centrados
+        contenido.append(Paragraph(f"<b>{nombre_empresa}</b>", estilo_subtitulo))
+        contenido.append(Paragraph(f"Año: {anio} &nbsp;&nbsp;&nbsp;|&nbsp;&nbsp;&nbsp; Moneda: {moneda}", estilo_subtitulo))
+        contenido.append(Spacer(1, 12))
+
+        # ------------ TABLAS / DATOS --------------
+
+        def agregar_seccion(titulo):
+            contenido.append(Spacer(1, 8))
+            contenido.append(Paragraph(f"<b>{titulo}</b>", estilo_seccion))
+            contenido.append(Spacer(1, 4))
+
+        def agregar_tabla(lista_tuplas):
+            tabla_data = [["Cuenta", "Valor", "%"]]
+            tabla_data += lista_tuplas
+
+            tabla = Table(tabla_data, colWidths=[220, 100, 60])
+
+            tabla.setStyle(TableStyle([
+                ('BACKGROUND', (0,0), (-1,0), colors.lightgrey),
+                ('TEXTCOLOR', (0,0), (-1,0), colors.black),
+                ('FONTNAME', (0,0), (-1,0), 'Helvetica-Bold'),
+                ('ALIGN', (1,1), (-1,-1), 'RIGHT'),
+                ('ALIGN', (0,0), (0,-1), 'LEFT'),
+                ('INNERGRID', (0,0), (-1,-1), 0.25, colors.grey),
+                ('BOX', (0,0), (-1,-1), 0.25, colors.black),
+                ('FONTSIZE', (0,0), (-1,-1), 9),
+            ]))
+
+            contenido.append(tabla)
+            contenido.append(Spacer(1, 12))
+
+        # ------------------ ACTIVOS ----------------------
+
+        # Extraer datos (usamos los mismos nombres que tu clase)
+        eff = float(self.datos.get('ACTIVOS_Efectivo', 0))
+        cc = float(self.datos.get('ACTIVOS_Cuentas_por_cobrar_comerciales', 0))
+        pr = float(self.datos.get('ACTIVOS_Prestamos_por_cobrar_a_partes_relacionadas', 0))
+        inv = float(self.datos.get('ACTIVOS_Inventarios', 0))
+        ga = float(self.datos.get('ACTIVOS_Gastos_pagados_por_anticipado', 0))
+
+        propiedades = float(self.datos.get('ACTIVOS_Propiedades,_plantas_y_equipos', 0))
+        intang = float(self.datos.get('ACTIVOS_Activos_intangibles', 0))
+        imp_diff = float(self.datos.get('ACTIVOS_Impuesto_sobre_la_renta_diferido', 0))
+        otros_act = float(self.datos.get('ACTIVOS_Otros_activos', 0))
+
+        total_corriente = eff + cc + pr + inv + ga
+        total_no_corr = propiedades + intang + imp_diff + otros_act
+        total_activo = total_corriente + total_no_corr if (total_corriente + total_no_corr) != 0 else 1
+
+        # ------- ACTIVO CORRIENTE ---------
+        agregar_seccion("ACTIVO CORRIENTE")
+
+        tabla_activo_corriente = [
+            ("Efectivo", f"$ {eff:,.2f}", f"{(eff/total_activo)*100:.2f}%"),
+            ("Cuentas por cobrar", f"$ {cc:,.2f}", f"{(cc/total_activo)*100:.2f}%"),
+            ("Préstamos por cobrar", f"$ {pr:,.2f}", f"{(pr/total_activo)*100:.2f}%"),
+            ("Inventarios", f"$ {inv:,.2f}", f"{(inv/total_activo)*100:.2f}%"),
+            ("Gastos anticipados", f"$ {ga:,.2f}", f"{(ga/total_activo)*100:.2f}%"),
+            ("TOTAL ACTIVO CORRIENTE", f"$ {total_corriente:,.2f}", f"{(total_corriente/total_activo)*100:.2f}%"),
+        ]
+        agregar_tabla(tabla_activo_corriente)
+
+        # ------- ACTIVO NO CORRIENTE ---------
+        agregar_seccion("ACTIVO NO CORRIENTE")
+
+        tabla_activo_no_corr = [
+            ("Propiedades, plantas y equipos", f"$ {propiedades:,.2f}", f"{(propiedades/total_activo)*100:.2f}%"),
+            ("Activos intangibles", f"$ {intang:,.2f}", f"{(intang/total_activo)*100:.2f}%"),
+            ("Impuesto diferido", f"$ {imp_diff:,.2f}", f"{(imp_diff/total_activo)*100:.2f}%"),
+            ("Otros activos", f"$ {otros_act:,.2f}", f"{(otros_act/total_activo)*100:.2f}%"),
+            ("TOTAL ACTIVO NO CORRIENTE", f"$ {total_no_corr:,.2f}", f"{(total_no_corr/total_activo)*100:.2f}%"),
+            ("TOTAL ACTIVO", f"$ {total_activo:,.2f}", "100%"),
+        ]
+        agregar_tabla(tabla_activo_no_corr)
+
+        # ------------------ PASIVO Y PATRIMONIO ----------------------
+
+        agregar_seccion("PASIVO Y PATRIMONIO")
+
+        prest_c = float(self.datos.get('PASIVOS_Prestamos_por_pagar_a_corto_plazo', 0))
+        prest_pc = float(self.datos.get('PASIVOS_Prestamos_a_partes_relacionadas_corto_plazo', 0))
+        prest_pcorr = float(self.datos.get('PASIVOS_Prestamos_a_partes_relacionadas_porcion_corriente', 0))
+        cxp = float(self.datos.get('PASIVOS_Cuentas_por_pagar_comerciales', 0))
+        ing_dif = float(self.datos.get('PASIVOS_Ingresos_diferidos', 0))
+        otras_cxp = float(self.datos.get('PASIVOS_Otras_cuentas_por_pagar', 0))
+        div = float(self.datos.get('PASIVOS_Dividendos_por_pagar', 0))
+        prest_lp = float(self.datos.get('PASIVOS_Prestamos_a_partes_relacionadas_largo_plazo', 0))
+
+        total_pasivo_corr = prest_c + prest_pc + prest_pcorr + cxp + ing_dif + otras_cxp + div
+        total_pasivo = total_pasivo_corr + prest_lp
+
+        cap_soc = float(self.datos.get('PATRIMONIO_Capital_social', 0))
+        cap_min = float(self.datos.get('PATRIMONIO_Capital_social_minimo', 0))
+        res_leg = float(self.datos.get('PATRIMONIO_Reserva_legal', 0))
+        deficit = float(self.datos.get('PATRIMONIO_Deficit_acumulado', 0))
+
+        total_patrimonio = cap_soc + res_leg - deficit
+        total_pasivo_patr = total_pasivo + total_patrimonio if (total_pasivo + total_patrimonio) != 0 else 1
+
+        tabla_pasivo_corr = [
+            ("Préstamos corto plazo", f"$ {prest_c:,.2f}", f"{(prest_c/total_pasivo_patr)*100:.2f}%"),
+            ("Préstamos partes corto plazo", f"$ {prest_pc:,.2f}", f"{(prest_pc/total_pasivo_patr)*100:.2f}%"),
+            ("Préstamos porción corriente", f"$ {prest_pcorr:,.2f}", f"{(prest_pcorr/total_pasivo_patr)*100:.2f}%"),
+            ("Cuentas por pagar", f"$ {cxp:,.2f}", f"{(cxp/total_pasivo_patr)*100:.2f}%"),
+            ("Ingresos diferidos", f"$ {ing_dif:,.2f}", f"{(ing_dif/total_pasivo_patr)*100:.2f}%"),
+            ("Otras cuentas por pagar", f"$ {otras_cxp:,.2f}", f"{(otras_cxp/total_pasivo_patr)*100:.2f}%"),
+            ("Dividendos por pagar", f"$ {div:,.2f}", f"{(div/total_pasivo_patr)*100:.2f}%"),
+            ("TOTAL PASIVO CORRIENTE", f"$ {total_pasivo_corr:,.2f}", f"{(total_pasivo_corr/total_pasivo_patr)*100:.2f}%"),
+        ]
+        agregar_tabla(tabla_pasivo_corr)
+
+        tabla_pasivo_pat = [
+            ("Préstamos largo plazo", f"$ {prest_lp:,.2f}", f"{(prest_lp/total_pasivo_patr)*100:.2f}%"),
+            ("TOTAL PASIVO NO CORRIENTE", f"$ {prest_lp:,.2f}", f"{(prest_lp/total_pasivo_patr)*100:.2f}%"),
+            ("TOTAL PASIVO", f"$ {total_pasivo:,.2f}", f"{(total_pasivo/total_pasivo_patr)*100:.2f}%"),
+            ("Capital social", f"$ {cap_soc:,.2f}", f"{(cap_soc/total_pasivo_patr)*100:.2f}%"),
+            ("Capital social mínimo", f"$ {cap_min:,.2f}", f"{(cap_min/total_pasivo_patr)*100:.2f}%"),
+            ("Reserva legal", f"$ {res_leg:,.2f}", f"{(res_leg/total_pasivo_patr)*100:.2f}%"),
+            ("Déficit acumulado", f"$ {-deficit:,.2f}", f"{(-deficit/total_pasivo_patr)*100:.2f}%"),
+            ("TOTAL PATRIMONIO", f"$ {total_patrimonio:,.2f}", f"{(total_patrimonio/total_pasivo_patr)*100:.2f}%"),
+            ("TOTAL PASIVO Y PATRIMONIO", f"$ {total_pasivo_patr:,.2f}", "100%"),
+        ]
+        agregar_tabla(tabla_pasivo_pat)
+
+        doc.build(contenido)
+
         messagebox.showinfo(
-            "Exportar PDF",
-            "Funcionalidad de exportación a PDF en desarrollo.\n\n"
-            "Próximamente podrás exportar este reporte."
+            "PDF generado",
+            f"El archivo PDF fue creado exitosamente:\n\n{archivo_pdf}"
         )
 
 def generar_analisis_vertical_balance(parent, datos_financieros):

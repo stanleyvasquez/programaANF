@@ -1,7 +1,11 @@
 import tkinter as tk
 from tkinter import ttk, messagebox
 from datetime import datetime
-
+from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, Table, TableStyle
+from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
+from reportlab.lib.pagesizes import letter
+from reportlab.lib import colors
+from reportlab.lib.units import inch
 class AnalisisVerticalEstadoResultados:
     def __init__(self, parent, datos_financieros):
         self.parent = parent
@@ -292,10 +296,171 @@ class AnalisisVerticalEstadoResultados:
         self.crear_fila_vertical(parent, "UTILIDAD NETA DEL EJERCICIO", utilidad_neta, (utilidad_neta/total_ingresos)*100, row, es_total=True)
     
     def exportar_pdf(self):
+        nombre_empresa = self.datos.get("nombre_empresa", "N/A")
+        anio = self.datos.get("anio", "N/A")
+        moneda = self.datos.get("tipo_moneda", "N/A")
+
+        archivo_pdf = f"Analisis_Vertical_Estado_Resultados_{nombre_empresa}_{anio}.pdf"
+
+        doc = SimpleDocTemplate(
+            archivo_pdf,
+            pagesize=letter,
+            rightMargin=40,
+            leftMargin=40,
+            topMargin=40,
+            bottomMargin=40
+        )
+
+        estilos = getSampleStyleSheet()
+        estilo_titulo = ParagraphStyle(
+            name='Titulo',
+            parent=estilos['Heading1'],
+            alignment=1,
+            fontSize=18,
+            leading=22,
+            spaceAfter=10
+        )
+
+        estilo_subtitulo = ParagraphStyle(
+            name='Subtitulo',
+            parent=estilos['Normal'],
+            alignment=1,
+            fontSize=11,
+            leading=14,
+            spaceAfter=6
+        )
+
+        estilo_seccion = ParagraphStyle(
+            name='Seccion',
+            parent=estilos['Heading2'],
+            fontSize=12,
+            leading=14,
+            spaceAfter=6,
+            spaceBefore=12,
+            textColor=colors.black,
+            alignment=0,
+        )
+
+        contenido = []
+
+        # ------------ TITULO CENTRADO ------------
+        contenido.append(Paragraph("Análisis Vertical - Estado de Resultados", estilo_titulo))
+        contenido.append(Paragraph(f"<b>{nombre_empresa}</b>", estilo_subtitulo))
+        contenido.append(Paragraph(f"Año: {anio} &nbsp;&nbsp;&nbsp;|&nbsp;&nbsp;&nbsp; Moneda: {moneda}", estilo_subtitulo))
+        contenido.append(Spacer(1, 12))
+
+        # ------------ FUNCIONES AUXILIARES ------------
+        def agregar_seccion(titulo):
+            contenido.append(Spacer(1, 8))
+            contenido.append(Paragraph(f"<b>{titulo}</b>", estilo_seccion))
+            contenido.append(Spacer(1, 4))
+
+        def agregar_tabla(lista_tuplas):
+            tabla_data = [["Cuenta", "Valor", "%"]]
+            tabla_data += lista_tuplas
+
+            tabla = Table(tabla_data, colWidths=[230, 100, 60])
+
+            tabla.setStyle(TableStyle([
+                ('BACKGROUND', (0,0), (-1,0), colors.lightgrey),
+                ('TEXTCOLOR', (0,0), (-1,0), colors.black),
+                ('FONTNAME', (0,0), (-1,0), 'Helvetica-Bold'),
+                ('ALIGN', (1,1), (-1,-1), 'RIGHT'),
+                ('ALIGN', (0,0), (0,-1), 'LEFT'),
+                ('INNERGRID', (0,0), (-1,-1), 0.25, colors.grey),
+                ('BOX', (0,0), (-1,-1), 0.25, colors.black),
+                ('FONTSIZE', (0,0), (-1,-1), 9),
+            ]))
+
+            contenido.append(tabla)
+            contenido.append(Spacer(1, 12))
+
+        # ------------ OBTENER DATOS ------------
+        ventas = float(self.datos.get('INGRESOS_Ventas', 0))
+        ingresos_servicios = float(self.datos.get('INGRESOS_Ingresos_por_Servicios', 0))
+        otros_ingresos = float(self.datos.get('INGRESOS_Otros_Ingresos', 0))
+        costo_ventas = abs(float(self.datos.get('GASTOS_Costo_de_Ventas', 0)))
+
+        gastos_admin = abs(float(self.datos.get('GASTOS_Gastos_Administrativos', 0)))
+        gastos_ventas = abs(float(self.datos.get('GASTOS_Gastos_de_Ventas', 0)))
+        otros_gastos = abs(float(self.datos.get('GASTOS_Otros_Gastos', 0)))
+
+        ingresos_financieros = float(self.datos.get('INGRESOS_Ingresos_Financieros', 0))
+        gastos_financieros = abs(float(self.datos.get('GASTOS_Gastos_Financieros', 0)))
+
+        # TOTAL INGRESOS = 100%
+        total_ingresos = ventas + ingresos_servicios + otros_ingresos
+        if total_ingresos == 0:
+            total_ingresos = 1
+
+        # ------------ TABLA: INGRESOS ------------
+        agregar_seccion("INGRESOS OPERACIONALES")
+
+        tabla_ingresos = [
+            ("Ventas", f"$ {ventas:,.2f}", f"{(ventas/total_ingresos)*100:.2f}%"),
+            ("Ingresos por Servicios", f"$ {ingresos_servicios:,.2f}", f"{(ingresos_servicios/total_ingresos)*100:.2f}%"),
+            ("Otros Ingresos", f"$ {otros_ingresos:,.2f}", f"{(otros_ingresos/total_ingresos)*100:.2f}%"),
+            ("TOTAL INGRESOS", f"$ {total_ingresos:,.2f}", "100%"),
+        ]
+        agregar_tabla(tabla_ingresos)
+
+        # ------------ COSTO DE VENTAS ------------
+        utilidad_bruta = total_ingresos - costo_ventas
+
+        agregar_seccion("COSTO DE VENTAS / UTILIDAD BRUTA")
+        tabla_costo = [
+            ("Costo de Ventas", f"$ {costo_ventas:,.2f}", f"{(costo_ventas/total_ingresos)*100:.2f}%"),
+            ("UTILIDAD BRUTA", f"$ {utilidad_bruta:,.2f}", f"{(utilidad_bruta/total_ingresos)*100:.2f}%"),
+        ]
+        agregar_tabla(tabla_costo)
+
+        # ------------ GASTOS OPERACIONALES ------------
+        total_gastos_oper = gastos_admin + gastos_ventas + otros_gastos
+        utilidad_operativa = utilidad_bruta - total_gastos_oper
+
+        agregar_seccion("GASTOS OPERACIONALES")
+
+        tabla_gastos = [
+            ("Gastos Administrativos", f"$ {gastos_admin:,.2f}", f"{(gastos_admin/total_ingresos)*100:.2f}%"),
+            ("Gastos de Ventas", f"$ {gastos_ventas:,.2f}", f"{(gastos_ventas/total_ingresos)*100:.2f}%"),
+            ("Otros Gastos", f"$ {otros_gastos:,.2f}", f"{(otros_gastos/total_ingresos)*100:.2f}%"),
+            ("TOTAL GASTOS OPERACIONALES", f"$ {total_gastos_oper:,.2f}", f"{(total_gastos_oper/total_ingresos)*100:.2f}%"),
+            ("UTILIDAD OPERATIVA", f"$ {utilidad_operativa:,.2f}", f"{(utilidad_operativa/total_ingresos)*100:.2f}%"),
+        ]
+        agregar_tabla(tabla_gastos)
+
+        # ------------ INGRESOS Y GASTOS FINANCIEROS ------------
+        resultado_financiero = ingresos_financieros - gastos_financieros
+        utilidad_antes_impuestos = utilidad_operativa + resultado_financiero
+
+        agregar_seccion("INGRESOS Y GASTOS FINANCIEROS")
+
+        tabla_financieros = [
+            ("Ingresos Financieros", f"$ {ingresos_financieros:,.2f}", f"{(ingresos_financieros/total_ingresos)*100:.2f}%"),
+            ("Gastos Financieros", f"$ {gastos_financieros:,.2f}", f"{(gastos_financieros/total_ingresos)*100:.2f}%"),
+            ("Resultado Financiero Neto", f"$ {resultado_financiero:,.2f}", f"{(resultado_financiero/total_ingresos)*100:.2f}%"),
+            ("UTILIDAD ANTES DE IMPUESTOS", f"$ {utilidad_antes_impuestos:,.2f}", f"{(utilidad_antes_impuestos/total_ingresos)*100:.2f}%"),
+        ]
+        agregar_tabla(tabla_financieros)
+
+        # ------------ IMPUESTOS Y UTILIDAD NETA ------------
+        impuestos = utilidad_antes_impuestos * 0.30 if utilidad_antes_impuestos > 0 else 0
+        utilidad_neta = utilidad_antes_impuestos - impuestos
+
+        agregar_seccion("IMPUESTOS Y UTILIDAD NETA")
+
+        tabla_final = [
+            ("Impuesto sobre la Renta (30%)", f"$ {impuestos:,.2f}", f"{(impuestos/total_ingresos)*100:.2f}%"),
+            ("UTILIDAD NETA DEL EJERCICIO", f"$ {utilidad_neta:,.2f}", f"{(utilidad_neta/total_ingresos)*100:.2f}%"),
+        ]
+        agregar_tabla(tabla_final)
+
+        # ------------ CREAR PDF ------------
+        doc.build(contenido)
+
         messagebox.showinfo(
-            "Exportar PDF",
-            "Funcionalidad de exportación a PDF en desarrollo.\n\n"
-            "Próximamente podrás exportar este reporte."
+            "PDF generado",
+            f"El archivo PDF fue creado exitosamente:\n\n{archivo_pdf}"
         )
 
 def generar_analisis_vertical_estado_resultados(parent, datos_financieros):

@@ -7,6 +7,7 @@ from estado_resultados import generar_estado_resultados
 from analisis_vertical_balance import generar_analisis_vertical_balance
 from analisis_vertical_estado_resultados import generar_analisis_vertical_estado_resultados
 from analisis_dupont import generar_analisis_dupont
+import json
 
 # =========================
 # Ventana principal mejorada
@@ -17,6 +18,7 @@ class AnalisisFinancieroApp:
         self.root.title("Sistema de Análisis Financiero")
         self.root.geometry("700x600")
         self.root.resizable(False, False)
+        
         
         # Centrar ventana en la pantalla
         self.centrar_ventana()

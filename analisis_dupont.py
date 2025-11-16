@@ -1,7 +1,11 @@
 import tkinter as tk
 from tkinter import ttk, messagebox
 from datetime import datetime
-
+from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, Table, TableStyle
+from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
+from reportlab.lib.pagesizes import letter
+from reportlab.lib import colors
+from reportlab.lib.units import inch
 class AnalisisDuPont:
     def __init__(self, parent, datos_financieros):
         self.parent = parent
@@ -359,11 +363,184 @@ class AnalisisDuPont:
         self.crear_fila_indicador(parent, f"   → {rsp*100:.2f}% de retorno para los accionistas", "N/A", row)
     
     def exportar_pdf(self):
-        """Exporta el análisis DuPont a PDF"""
+        nombre_empresa = self.datos.get("nombre_empresa", "N/A")
+        anio = self.datos.get("anio", "N/A")
+        moneda = self.datos.get("tipo_moneda", "N/A")
+
+        archivo_pdf = f"Analisis_DuPont_{nombre_empresa}_{anio}.pdf"
+
+        doc = SimpleDocTemplate(
+            archivo_pdf,
+            pagesize=letter,
+            rightMargin=40,
+            leftMargin=40,
+            topMargin=40,
+            bottomMargin=40
+        )
+
+        estilos = getSampleStyleSheet()
+        estilo_titulo = ParagraphStyle(
+            name='Titulo',
+            parent=estilos['Heading1'],
+            alignment=1,
+            fontSize=18,
+            leading=22,
+            spaceAfter=10
+        )
+
+        estilo_subtitulo = ParagraphStyle(
+            name='Subtitulo',
+            parent=estilos['Normal'],
+            alignment=1,
+            fontSize=11,
+            leading=14,
+            spaceAfter=6
+        )
+
+        estilo_seccion = ParagraphStyle(
+            name='Seccion',
+            parent=estilos['Heading2'],
+            fontSize=12,
+            leading=14,
+            spaceAfter=8,
+            spaceBefore=10,
+            textColor=colors.black,
+            alignment=0,
+        )
+
+        estilo_formula = ParagraphStyle(
+            name='Formula',
+            parent=estilos['Normal'],
+            fontSize=9,
+            textColor=colors.grey,
+            leading=10,
+            spaceAfter=4,
+        )
+
+        contenido = []
+
+        # ------------ TITULO CENTRADO ------------
+        contenido.append(Paragraph("Análisis de Rentabilidad – Sistema DuPont", estilo_titulo))
+        contenido.append(Paragraph(f"<b>{nombre_empresa}</b>", estilo_subtitulo))
+        contenido.append(Paragraph(f"Año: {anio} &nbsp;&nbsp;&nbsp;|&nbsp;&nbsp;&nbsp; Moneda: {moneda}", estilo_subtitulo))
+        contenido.append(Spacer(1, 15))
+
+        # ------------ FUNCIONES AUXILIARES ------------
+        def agregar_seccion(titulo):
+            contenido.append(Paragraph(f"<b>{titulo}</b>", estilo_seccion))
+            contenido.append(Spacer(1, 6))
+
+        def agregar_tabla(data):
+            tabla = Table(data, colWidths=[240, 120])
+
+            tabla.setStyle(TableStyle([
+                ('BACKGROUND', (0,0), (-1,0), colors.lightgrey),
+                ('TEXTCOLOR', (0,0), (-1,0), colors.black),
+                ('FONTNAME', (0,0), (-1,0), 'Helvetica-Bold'),
+                ('ALIGN', (1,1), (-1,-1), 'RIGHT'),
+                ('ALIGN', (0,0), (0,-1), 'LEFT'),
+                ('BOX', (0,0), (-1,-1), 0.25, colors.black),
+                ('INNERGRID', (0,0), (-1,-1), 0.25, colors.grey),
+                ('FONTSIZE', (0,0), (-1,-1), 9)
+            ]))
+
+            contenido.append(tabla)
+            contenido.append(Spacer(1, 12))
+
+        def agregar_formula(texto):
+            contenido.append(Paragraph(texto, estilo_formula))
+            contenido.append(Spacer(1, 4))
+
+        # ------------ OBTENER DATOS (igual que en tu clase) ------------
+        ventas = float(self.datos.get('INGRESOS_Ventas', 0))
+        ingresos_servicios = float(self.datos.get('INGRESOS_Ingresos_por_Servicios', 0))
+        otros_ingresos = float(self.datos.get('INGRESOS_Otros_Ingresos', 0))
+        ingresos_financieros = float(self.datos.get('INGRESOS_Ingresos_Financieros', 0))
+
+        costo_ventas = float(self.datos.get('GASTOS_Costo_de_Ventas', 0))
+        gastos_admin = float(self.datos.get('GASTOS_Gastos_Administrativos', 0))
+        gastos_ventas = float(self.datos.get('GASTOS_Gastos_de_Ventas', 0))
+        gastos_financieros = float(self.datos.get('GASTOS_Gastos_Financieros', 0))
+        otros_gastos = float(self.datos.get('GASTOS_Otros_Gastos', 0))
+        impuestos = float(self.datos.get('GASTOS_Impuesto_sobre_la_Renta', 0))
+
+        # Balance
+        efectivo = float(self.datos.get('ACTIVOS_Efectivo', 0))
+        cuentas_cobrar = float(self.datos.get('ACTIVOS_Cuentas_por_cobrar_comerciales', 0))
+        prestamos_cobrar = float(self.datos.get('ACTIVOS_Prestamos_por_cobrar_a_partes_relacionadas', 0))
+        inventarios = float(self.datos.get('ACTIVOS_Inventarios', 0))
+        gastos_anticipados = float(self.datos.get('ACTIVOS_Gastos_pagados_por_anticipado', 0))
+
+        propiedades = float(self.datos.get('ACTIVOS_Propiedades,_plantas_y_equipos', 0))
+        intangibles = float(self.datos.get('ACTIVOS_Activos_intangibles', 0))
+        impuesto_diferido = float(self.datos.get('ACTIVOS_Impuesto_sobre_la_renta_diferido', 0))
+        otros_activos = float(self.datos.get('ACTIVOS_Otros_activos', 0))
+
+        capital_social = float(self.datos.get('PATRIMONIO_Capital_social', 0))
+        reserva_legal = float(self.datos.get('PATRIMONIO_Reserva_legal', 0))
+        deficit = float(self.datos.get('PATRIMONIO_Deficit_acumulado', 0))
+
+        total_ingresos = ventas + ingresos_servicios + otros_ingresos
+        total_gastos_oper = abs(costo_ventas) + abs(gastos_admin) + abs(gastos_ventas) + abs(otros_gastos)
+        utilidad_operativa = total_ingresos - total_gastos_oper
+        resultado_financiero = ingresos_financieros - abs(gastos_financieros)
+        utilidad_antes_impuestos = utilidad_operativa + resultado_financiero
+        utilidad_neta = utilidad_antes_impuestos - abs(impuestos)
+
+        total_activo_corriente = efectivo + cuentas_cobrar + prestamos_cobrar + inventarios + gastos_anticipados
+        total_activo_no_corriente = propiedades + intangibles + impuesto_diferido + otros_activos
+        activos_totales = total_activo_corriente + total_activo_no_corriente
+
+        patrimonio = capital_social + reserva_legal - deficit
+
+        if ventas == 0: ventas = 1
+        if activos_totales == 0: activos_totales = 1
+        if patrimonio == 0: patrimonio = 1
+
+        margen_neto = (utilidad_neta / ventas) * 100
+        rotacion_activos = ventas / activos_totales
+        rsa = (margen_neto / 100) * rotacion_activos
+        multiplicador_capital = activos_totales / patrimonio
+        roe = rsa * multiplicador_capital
+
+        # ------------ SECCIÓN: DATOS BASE ------------
+        agregar_seccion("DATOS BASE")
+
+        tabla_datos = [
+            ["Ventas Netas", f"$ {ventas:,.2f}"],
+            ["Utilidad Neta", f"$ {utilidad_neta:,.2f}"],
+            ["Activos Totales", f"$ {activos_totales:,.2f}"],
+            ["Patrimonio (Capital Contable)", f"$ {patrimonio:,.2f}"]
+        ]
+        agregar_tabla(tabla_datos)
+
+        # ------------ COMPONENTES DUPONT ------------
+        agregar_seccion("COMPONENTES DEL SISTEMA DUPONT")
+
+        tabla_componentes = [
+            ["Margen de Utilidad Neta", f"{margen_neto:.2f}%"],
+            ["Rotación de Activos", f"{rotacion_activos:.4f} veces"],
+            ["Multiplicador del Capital", f"{multiplicador_capital:.4f} veces"],
+            ["Rendimiento sobre Activos (RSA)", f"{rsa*100:.2f}%"],
+            ["Rendimiento sobre Patrimonio (ROE)", f"{roe*100:.2f}%"],
+        ]
+        agregar_tabla(tabla_componentes)
+
+        # ------------ FORMULAS ------------
+        agregar_seccion("FÓRMULAS UTILIZADAS")
+
+        agregar_formula("Margen Neto = (Utilidad Neta / Ventas) × 100")
+        agregar_formula("Rotación de Activos = Ventas / Activos Totales")
+        agregar_formula("RSA = Margen Neto × Rotación de Activos")
+        agregar_formula("Multiplicador = Activos Totales / Patrimonio")
+        agregar_formula("ROE = RSA × Multiplicador del Capital")
+
+        # ------------ GENERAR PDF ------------
+        doc.build(contenido)
+
         messagebox.showinfo(
-            "Exportar PDF",
-            "Funcionalidad de exportación a PDF en desarrollo.\n\n"
-            "Próximamente podrás exportar este reporte."
+            "PDF generado",
+            f"El archivo PDF fue creado exitosamente:\n\n{archivo_pdf}"
         )
 
 def generar_analisis_dupont(parent, datos_financieros):

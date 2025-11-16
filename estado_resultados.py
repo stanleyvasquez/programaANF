@@ -1,6 +1,10 @@
 import tkinter as tk
 from tkinter import ttk, messagebox
 from datetime import datetime
+from reportlab.platypus import SimpleDocTemplate, Table, TableStyle, Paragraph, Spacer
+from reportlab.lib.pagesizes import letter
+from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
+from reportlab.lib import colors
 
 class EstadoResultados:
     def __init__(self, parent, datos_financieros):
@@ -320,13 +324,165 @@ class EstadoResultados:
         label_valor.grid(row=0, column=1, sticky="e")
     
     def exportar_pdf(self):
-        """Exporta el estado de resultados a PDF"""
-        messagebox.showinfo(
-            "Exportar PDF",
-            "Funcionalidad de exportación a PDF en desarrollo.\n\n"
-            "Próximamente podrás exportar este reporte."
+        nombre_archivo = f"Estado_Resultados_{self.datos.get('nombre_empresa','Empresa')}.pdf"
+
+        # Documento con margen derecho amplio (igual que balance general)
+        doc = SimpleDocTemplate(
+            nombre_archivo,
+            pagesize=letter,
+            leftMargin=50,
+            rightMargin=150,   # mueve contenido hacia la izquierda
+            topMargin=40,
+            bottomMargin=30
         )
 
+        styles = getSampleStyleSheet()
+
+        # ----- ESTILOS -----
+        titulo_centrado = ParagraphStyle(
+            "titulo_centrado",
+            parent=styles["Title"],
+            alignment=1,
+            fontSize=20,
+            spaceAfter=12
+        )
+
+        texto_centrado = ParagraphStyle(
+            "texto_centrado",
+            parent=styles["Normal"],
+            alignment=1,
+            fontSize=12,
+            spaceAfter=5
+        )
+
+        seccion_titulo = ParagraphStyle(
+            "seccion_titulo",
+            parent=styles["Heading3"],
+            fontSize=12,
+            alignment=0,
+            textColor=colors.black,
+            spaceAfter=4,
+            spaceBefore=12
+        )
+
+        elementos = []
+
+        # ----- ENCABEZADO -----
+        elementos.append(Paragraph("<b>ESTADO DE RESULTADOS</b>", titulo_centrado))
+
+        empresa = self.datos.get("nombre_empresa", "N/A")
+        anio = self.datos.get("anio", "N/A")
+        moneda = self.datos.get("tipo_moneda", "N/A")
+
+        elementos.append(Paragraph(f"<b>{empresa}</b>", texto_centrado))
+        elementos.append(Paragraph(f"Año: {anio}", texto_centrado))
+        elementos.append(Paragraph(f"Moneda: {moneda}", texto_centrado))
+        elementos.append(Spacer(1, 15))
+
+        # Función para filas
+        def fila(nombre, valor, bold=False):
+            if isinstance(valor, (int, float)):
+                valor = f"$ {valor:,.2f}"
+            style = [
+                ("ALIGN", (1, 0), (1, 0), "RIGHT"),
+                ("FONTSIZE", (0, 0), (-1, -1), 10),
+                ("LEFTPADDING", (0,0), (-1,-1), 4),
+                ("RIGHTPADDING", (0,0), (-1,-1), 4),
+            ]
+            if bold:
+                style.append(("FONTNAME", (0,0), (-1,-1), "Helvetica-Bold"))
+                style.append(("TEXTCOLOR", (0,0), (-1,-1), colors.HexColor("#0b2545")))
+
+            t = Table([[nombre, valor]], colWidths=[240, 80])
+            t.setStyle(TableStyle(style))
+            return t
+
+        # ========== INGRESOS ==========
+        elementos.append(Paragraph("<b>INGRESOS OPERACIONALES</b>", seccion_titulo))
+
+        ventas = float(self.datos.get('INGRESOS_Ventas', 0))
+        ingresos_servicios = float(self.datos.get('INGRESOS_Ingresos_por_Servicios', 0))
+        otros_ingresos = float(self.datos.get('INGRESOS_Otros_Ingresos', 0))
+
+        elementos.append(fila("Ventas", ventas))
+        elementos.append(fila("Ingresos por Servicios", ingresos_servicios))
+        elementos.append(fila("Otros Ingresos", otros_ingresos))
+
+        total_ingresos = ventas + ingresos_servicios + otros_ingresos
+        elementos.append(fila("TOTAL INGRESOS", total_ingresos, bold=True))
+        elementos.append(Spacer(1, 10))
+
+        # ========== COSTOS ==========
+        costo_ventas = float(self.datos.get('GASTOS_Costo_de_Ventas', 0))
+        elementos.append(fila("(-) Costo de Ventas", costo_ventas))
+
+        utilidad_bruta = total_ingresos - abs(costo_ventas)
+        elementos.append(fila("UTILIDAD BRUTA", utilidad_bruta, bold=True))
+        elementos.append(Spacer(1, 10))
+
+        # ========== GASTOS OPERACIONALES ==========
+        elementos.append(Paragraph("<b>GASTOS OPERACIONALES</b>", seccion_titulo))
+
+        gastos_admin = float(self.datos.get('GASTOS_Gastos_Administrativos', 0))
+        gastos_ventas = float(self.datos.get('GASTOS_Gastos_de_Ventas', 0))
+        otros_gastos = float(self.datos.get('GASTOS_Otros_Gastos', 0))
+
+        elementos.append(fila("Gastos Administrativos", gastos_admin))
+        elementos.append(fila("Gastos de Ventas", gastos_ventas))
+        elementos.append(fila("Otros Gastos", otros_gastos))
+
+        total_gastos_operacionales = gastos_admin + gastos_ventas + otros_gastos
+        elementos.append(fila("TOTAL GASTOS OPERACIONALES", total_gastos_operacionales, bold=True))
+        elementos.append(Spacer(1, 10))
+
+        utilidad_operativa = utilidad_bruta - total_gastos_operacionales
+        elementos.append(fila("UTILIDAD (PÉRDIDA) OPERATIVA", utilidad_operativa, bold=True))
+        elementos.append(Spacer(1, 10))
+
+        # ========== INGRESOS Y GASTOS FINANCIEROS ==========
+        elementos.append(Paragraph("<b>INGRESOS Y GASTOS FINANCIEROS</b>", seccion_titulo))
+
+        ingresos_financieros = float(self.datos.get('INGRESOS_Ingresos_Financieros', 0))
+        gastos_financieros = float(self.datos.get('GASTOS_Gastos_Financieros', 0))
+
+        elementos.append(fila("Ingresos Financieros", ingresos_financieros))
+        elementos.append(fila("Gastos Financieros", gastos_financieros))
+
+        resultado_financiero = ingresos_financieros - abs(gastos_financieros)
+        elementos.append(fila("Resultado Financiero Neto", resultado_financiero, bold=True))
+        elementos.append(Spacer(1, 10))
+
+        # ========== UTILIDAD ANTES DE IMPUESTOS ==========
+        utilidad_antes_impuestos = utilidad_operativa + resultado_financiero
+        elementos.append(fila("UTILIDAD (PÉRDIDA) ANTES DE IMPUESTOS", utilidad_antes_impuestos, bold=True))
+        elementos.append(Spacer(1, 10))
+
+        # ========== IMPUESTOS ==========
+        impuestos_tasa = 0.30
+        impuestos = utilidad_antes_impuestos * impuestos_tasa if utilidad_antes_impuestos > 0 else 0
+
+        elementos.append(fila("(-) Impuesto sobre la Renta (30%)", impuestos))
+
+        utilidad_neta = utilidad_antes_impuestos - impuestos
+        elementos.append(fila("UTILIDAD NETA DEL EJERCICIO", utilidad_neta, bold=True))
+        elementos.append(Spacer(1, 15))
+
+        # ========== MÁRGENES ==========
+        elementos.append(Paragraph("<b>ANÁLISIS DE MÁRGENES</b>", seccion_titulo))
+
+        margen_bruto = (utilidad_bruta / total_ingresos * 100) if total_ingresos > 0 else 0
+        margen_operativo = (utilidad_operativa / total_ingresos * 100) if total_ingresos > 0 else 0
+        margen_neto = (utilidad_neta / total_ingresos * 100) if total_ingresos > 0 else 0
+
+        elementos.append(fila("Margen Bruto", f"{margen_bruto:.2f}%"))
+        elementos.append(fila("Margen Operativo", f"{margen_operativo:.2f}%"))
+        elementos.append(fila("Margen Neto", f"{margen_neto:.2f}%"))
+
+        # ----- GENERAR PDF -----
+        doc.build(elementos)
+
+        messagebox.showinfo("PDF Generado", f"Se creó el archivo:\n{nombre_archivo}")
+    
 def generar_estado_resultados(parent, datos_financieros):
     """Función principal para generar el estado de resultados"""
     if not datos_financieros:
