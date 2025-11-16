@@ -7,6 +7,7 @@ from estado_resultados import generar_estado_resultados
 from analisis_vertical_balance import generar_analisis_vertical_balance
 from analisis_vertical_estado_resultados import generar_analisis_vertical_estado_resultados
 from analisis_dupont import generar_analisis_dupont
+from ratios_financieros import generar_ratios_financieros
 import json
 import os
 # =========================
@@ -331,6 +332,11 @@ class AnalisisFinancieroApp:
                 "comando": self.generar_estado_resultados
             },
             {
+                "titulo": "📊 Indicadores Financieros (Ratios)",
+                "descripcion": "Liquidez, prueba ácida, rotación, períodos de cobro y pago",
+                "comando": self.generar_ratios_financieros
+            },
+            {
                 "titulo": "📈 Análisis Vertical - Balance",
                 "descripcion": "Análisis porcentual de cada cuenta respecto al total de activos",
                 "comando": self.generar_analisis_vertical_balance
@@ -437,6 +443,23 @@ class AnalisisFinancieroApp:
         label_desc.bind("<Enter>", on_enter)
         label_desc.bind("<Leave>", on_leave)
         label_desc.bind("<Button-1>", lambda e: comando())
+        
+    def generar_ratios_financieros(self):
+        self.cargar_desde_archivo()
+
+        if not self.registros_financieros:
+            messagebox.showwarning(
+                "Sin Datos",
+                "No hay registros financieros disponibles para generar los ratios."
+            )
+            return
+
+        if len(self.registros_financieros) == 1:
+            generar_ratios_financieros(self.root, self.registros_financieros[0], self)
+            return
+
+        # Selección de período si hay varios
+        self.seleccionar_registro_para_reporte("Ratios Financieros", generar_ratios_financieros)
 
     def generar_balance_general(self):
         self.cargar_desde_archivo()
