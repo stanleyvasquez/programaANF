@@ -6,6 +6,7 @@ from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
 from reportlab.lib.pagesizes import letter
 from reportlab.lib import colors
 from reportlab.lib.units import inch
+
 class AnalisisDuPont:
     def __init__(self, parent, datos_financieros):
         self.parent = parent
@@ -543,8 +544,13 @@ class AnalisisDuPont:
             f"El archivo PDF fue creado exitosamente:\n\n{archivo_pdf}"
         )
 
-def generar_analisis_dupont(parent, datos_financieros):
+def generar_analisis_dupont(parent, datos_financieros, app_instance=None):
     """Función principal para generar el análisis DuPont"""
+    if app_instance:
+        app_instance.cargar_desde_archivo()
+        if app_instance.registros_financieros:
+            datos_financieros = app_instance.registros_financieros[-1]
+    
     if not datos_financieros:
         messagebox.showwarning(
             "Sin datos",

@@ -301,8 +301,8 @@ class EdicionFinanciero:
                 ]
             }
         ], 0)
-        
-                # INGRESOS (operacionales + financieros)
+
+        # INGRESOS (operacionales + financieros)
         self.crear_seccion_datos_compacta(frame_col_der, "INGRESOS", [
             "Ventas",
             "Ingresos por Servicios",
@@ -310,7 +310,7 @@ class EdicionFinanciero:
             "Ingresos Financieros"
         ], 1)
         
-        # GASTOS (operacionales, financieros e impuestos) – ingresados como negativos
+        # GASTOS (operacionales, financieros e impuestos)
         self.crear_seccion_datos_compacta(frame_col_der, "GASTOS", [
             "Costo de Ventas",
             "Gastos Administrativos",
@@ -477,7 +477,7 @@ class EdicionFinanciero:
                        borderwidth=0)
     
     def crear_seccion_datos_compacta(self, parent, titulo, campos, fila):
-        """Crea una sección de ingreso de datos compacta con valores pre-cargados"""
+        """Crea una sección de ingreso de datos compacta con valores pre-cargados y cuentas personalizadas"""
         frame_seccion = tk.Frame(parent, bg=self.parent_app.bg_secundario, relief="solid", borderwidth=1)
         frame_seccion.grid(row=fila, column=0, pady=8, sticky="ew")
         
@@ -493,6 +493,8 @@ class EdicionFinanciero:
         
         frame_campos = tk.Frame(frame_seccion, bg=self.parent_app.bg_secundario)
         frame_campos.pack(fill="both", padx=12, pady=10)
+        
+        cuentas_personalizadas = self.datos_actuales.get("_cuentas_personalizadas", {})
         
         for campo in campos:
             if isinstance(campo, dict):
@@ -594,7 +596,59 @@ class EdicionFinanciero:
                     fg="#3bb273"
                 )
                 label_moneda.pack(side="left", padx=(4, 0))
-    
+        
+        cuentas_de_este_tipo = {k: v for k, v in cuentas_personalizadas.items() if v.get("tipo") == titulo}
+        if cuentas_de_este_tipo:
+            separator = tk.Frame(frame_campos, height=2, bg="#34495e")
+            separator.pack(fill="x", pady=(10, 5))
+            
+            label_personalizadas = tk.Label(
+                frame_campos,
+                text="[Cuentas Personalizadas]",
+                font=("Segoe UI", 8, "italic"),
+                bg=self.parent_app.bg_secundario,
+                fg="#ffa500"
+            )
+            label_personalizadas.pack(fill="x", pady=(0, 4))
+            
+            for clave, cuenta in cuentas_de_este_tipo.items():
+                frame_campo = tk.Frame(frame_campos, bg=self.parent_app.bg_secundario)
+                frame_campo.pack(fill="x", pady=2)
+                
+                label = tk.Label(
+                    frame_campo,
+                    text=cuenta.get("nombre", "Sin nombre") + ":",
+                    font=("Segoe UI", 8),
+                    bg=self.parent_app.bg_secundario,
+                    fg=self.parent_app.color_texto,
+                    width=28,
+                    anchor="w"
+                )
+                label.pack(side="left", padx=(15, 8))
+                
+                entry = tk.Entry(
+                    frame_campo,
+                    font=("Segoe UI", 8),
+                    bg="#2c3e50",
+                    fg="white",
+                    insertbackground="white",
+                    relief="flat",
+                    width=18
+                )
+                entry.insert(0, str(cuenta.get("valor", 0)))
+                entry.pack(side="left", ipady=3, fill="x", expand=True)
+                
+                self.entries[clave] = entry
+                
+                label_moneda = tk.Label(
+                    frame_campo,
+                    text="$",
+                    font=("Segoe UI", 9, "bold"),
+                    bg=self.parent_app.bg_secundario,
+                    fg="#3bb273"
+                )
+                label_moneda.pack(side="left", padx=(4, 0))
+
     def guardar_cambios(self, ventana):
         """Guarda los cambios realizados en el registro"""
         # Validar campos obligatorios
@@ -622,7 +676,8 @@ class EdicionFinanciero:
         datos_actualizados = {
             "nombre_empresa": nombre_empresa,
             "anio": anio_num,
-            "tipo_moneda": tipo_moneda
+            "tipo_moneda": tipo_moneda,
+            "_cuentas_personalizadas": self.datos_actuales.get("_cuentas_personalizadas", {})
         }
         
         # Recopilar todos los valores de los campos
@@ -636,6 +691,8 @@ class EdicionFinanciero:
         
         # Actualizar el registro en la lista principal
         self.parent_app.registros_financieros[self.indice_actual] = datos_actualizados
+        self.parent_app.guardar_en_archivo()
+
         
         messagebox.showinfo(
             "Cambios Guardados",

@@ -6,6 +6,7 @@ from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
 from reportlab.lib.pagesizes import letter
 from reportlab.lib import colors
 from reportlab.lib.units import inch
+
 class AnalisisVerticalBalance:
     def __init__(self, parent, datos_financieros):
         self.parent = parent
@@ -570,8 +571,12 @@ class AnalisisVerticalBalance:
             f"El archivo PDF fue creado exitosamente:\n\n{archivo_pdf}"
         )
 
-def generar_analisis_vertical_balance(parent, datos_financieros):
-    """Función principal para generar el análisis vertical del balance"""
+def generar_analisis_vertical_balance(parent, datos_financieros, app_instance=None):
+    if app_instance:
+        app_instance.cargar_desde_archivo()
+        if app_instance.registros_financieros:
+            datos_financieros = app_instance.registros_financieros[-1]
+    
     if not datos_financieros:
         messagebox.showwarning(
             "Sin datos",

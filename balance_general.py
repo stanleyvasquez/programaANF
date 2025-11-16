@@ -242,6 +242,15 @@ class BalanceGeneral:
         self.crear_fila_cuenta(parent, "Gastos pagados por anticipado", gastos_anticipados, row, 0, indent=True)
         row += 1
         
+        custom_accounts = self.datos.get("_cuentas_personalizadas", {})
+        custom_corriente = [k for k, v in custom_accounts.items() if v.get("tipo") == "ACTIVOS" and v.get("subrubro") == "Activo Corriente"]
+        for clave in custom_corriente:
+            valor = float(self.datos.get(clave, 0))
+            nombre = custom_accounts[clave].get("nombre", clave)
+            self.crear_fila_cuenta(parent, nombre, valor, row, 0, indent=True)
+            row += 1
+            efectivo += valor  # Include in total
+        
         total_corriente = efectivo + cuentas_cobrar_com + prestamos_cobrar + inventarios + gastos_anticipados
         self.crear_fila_cuenta(parent, "TOTAL ACTIVO CORRIENTE", total_corriente, row, 0, es_total=True)
         row += 1
@@ -264,6 +273,14 @@ class BalanceGeneral:
         row += 1
         self.crear_fila_cuenta(parent, "Otros activos", otros_activos, row, 0, indent=True)
         row += 1
+        
+        custom_nocorriente = [k for k, v in custom_accounts.items() if v.get("tipo") == "ACTIVOS" and v.get("subrubro") == "Activo No Corriente"]
+        for clave in custom_nocorriente:
+            valor = float(self.datos.get(clave, 0))
+            nombre = custom_accounts[clave].get("nombre", clave)
+            self.crear_fila_cuenta(parent, nombre, valor, row, 0, indent=True)
+            row += 1
+            propiedades += valor  # Include in total
         
         total_no_corriente = propiedades + intangibles + impuesto_diferido + otros_activos
         self.crear_fila_cuenta(parent, "TOTAL ACTIVO NO CORRIENTE", total_no_corriente, row, 0, es_total=True)
@@ -358,8 +375,6 @@ class BalanceGeneral:
         self.crear_fila_cuenta(parent, "TOTAL PASIVO Y PATRIMONIO", total_pasivo_patrimonio, row, 1, es_total=True)
     
     def exportar_pdf(self):
-      
-
         nombre_archivo = f"Balance_General_{self.datos.get('nombre_empresa','Empresa')}.pdf"
 
         # Documento con más margen a la derecha
@@ -434,9 +449,11 @@ class BalanceGeneral:
             return t
 
         # =============== ACTIVO ===============
+
         elementos.append(Paragraph("<b>ACTIVO</b>", seccion_titulo))
 
         # ACTIVO CORRIENTE
+
         elementos.append(Paragraph("<b>ACTIVO CORRIENTE</b>", seccion_titulo))
 
         activos_corrientes = [
@@ -456,6 +473,7 @@ class BalanceGeneral:
         elementos.append(Spacer(1, 8))
 
         # ACTIVO NO CORRIENTE
+
         elementos.append(Paragraph("<b>ACTIVO NO CORRIENTE</b>", seccion_titulo))
 
         activos_nc = [
@@ -478,6 +496,7 @@ class BalanceGeneral:
         elementos.append(Spacer(1, 20))
 
         # =============== PASIVO ===============
+
         elementos.append(Paragraph("<b>PASIVO</b>", seccion_titulo))
 
         elementos.append(Paragraph("<b>PASIVO CORRIENTE</b>", seccion_titulo))
@@ -512,6 +531,7 @@ class BalanceGeneral:
         elementos.append(Spacer(1, 20))
 
         # =============== PATRIMONIO ===============
+
         elementos.append(Paragraph("<b>PATRIMONIO </b>", seccion_titulo))
 
         capital_social = float(self.datos.get("PATRIMONIO_Capital_social", 0))
@@ -532,12 +552,18 @@ class BalanceGeneral:
         elementos.append(fila("TOTAL PASIVO Y PATRIMONIO", total_final, bold=True))
 
         # ----- GENERAR PDF -----
+
         doc.build(elementos)
 
         messagebox.showinfo("PDF Generado", f"Se creó el archivo:\n{nombre_archivo}")
 
-def generar_balance_general(parent, datos_financieros):
+def generar_balance_general(parent, datos_financieros, app_instance=None):
     """Función principal para generar el balance general"""
+    if app_instance:
+        app_instance.cargar_desde_archivo()
+        if app_instance.registros_financieros:
+            datos_financieros = app_instance.registros_financieros[-1]
+    
     if not datos_financieros:
         messagebox.showwarning(
             "Sin datos",

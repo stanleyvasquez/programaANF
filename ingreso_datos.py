@@ -5,7 +5,9 @@ class IngresoFinanciero:
     def __init__(self, parent_app):
         self.parent_app = parent_app
         self.entries = {}  # Diccionario para almacenar todos los campos de entrada
-        
+        self.cuentas_personalizadas = {}  # agregado para almacenar cuentas personalizadas temporalmente
+       
+    
     def abrir_ventana(self):
         """Abre la ventana de ingreso de datos financieros"""
         ventana_ingreso = tk.Toplevel(self.parent_app.root)
@@ -141,7 +143,7 @@ class IngresoFinanciero:
             }
         ], 0)
         
-           # INGRESOS (operacionales + financieros)
+        # INGRESOS (operacionales + financieros)
         self.crear_seccion_datos_compacta(frame_col_der, "INGRESOS", [
             "Ventas",
             "Ingresos por Servicios",
@@ -150,7 +152,6 @@ class IngresoFinanciero:
         ], 1)
         
         # GASTOS (operacionales, financieros e impuestos)
-        # 👇 IMPORTANTE: aquí se espera que los gastos se ingresen en NEGATIVO
         self.crear_seccion_datos_compacta(frame_col_der, "GASTOS", [
             "Costo de Ventas",
             "Gastos Administrativos",
@@ -164,6 +165,21 @@ class IngresoFinanciero:
         
         frame_botones = tk.Frame(frame_scroll, bg=self.parent_app.bg_principal)
         frame_botones.grid(row=2, column=0, columnspan=2, pady=20, sticky="ew", padx=20)
+        
+        btn_agregar_cuenta = tk.Button(
+            frame_botones,
+            text="➕ Agregar Cuenta Personalizada",
+            font=("Segoe UI", 10, "bold"),
+            bg=self.parent_app.color_acento,
+            fg="white",
+            cursor="hand2",
+            relief="flat",
+            padx=30,
+            pady=10,
+            activebackground=self.parent_app.ajustar_color(self.parent_app.color_acento, 1.2),
+            command=lambda: self.abrir_agregar_cuenta()
+        )
+        btn_agregar_cuenta.pack(side="left", padx=5)
         
         btn_guardar = tk.Button(
             frame_botones,
@@ -194,6 +210,18 @@ class IngresoFinanciero:
             command=on_closing
         )
         btn_cancelar.pack(side="right", padx=10, expand=True)
+    
+    def abrir_agregar_cuenta(self):
+        """Abre el asistente para agregar cuentas personalizadas"""
+        from agregar_cuenta import AgregarCuenta
+        
+        def callback_agregar_cuenta(datos_cuenta):
+            clave = datos_cuenta["clave"]
+            self.cuentas_personalizadas[clave] = datos_cuenta
+            self.entries[clave] = tk.StringVar(value=str(datos_cuenta["valor"]))
+        
+        agregar = AgregarCuenta(self.parent_app, callback=callback_agregar_cuenta)
+        agregar.abrir_ventana()
     
     def crear_seccion_informacion_general(self, parent, fila):
         frame_seccion = tk.Frame(parent, bg=self.parent_app.bg_secundario, relief="solid", borderwidth=1)
@@ -444,7 +472,8 @@ class IngresoFinanciero:
         nuevo_registro = {
             "nombre_empresa": nombre_empresa,
             "anio": anio_num,
-            "tipo_moneda": tipo_moneda
+            "tipo_moneda": tipo_moneda,
+            "_cuentas_personalizadas": self.cuentas_personalizadas  # guardar cuentas personalizadas que se agregaron
         }
         
         for key, entry in self.entries.items():
@@ -455,10 +484,11 @@ class IngresoFinanciero:
                 except ValueError:
                     valor_numerico = 0
                 
-                # Guardar con la clave exacta del formato SECCION_CampoNormalizado
                 nuevo_registro[key] = valor_numerico
         
         self.parent_app.registros_financieros.append(nuevo_registro)
+        self.parent_app.guardar_en_archivo()
+
         
         messagebox.showinfo(
             "Datos Guardados",

@@ -8,7 +8,7 @@ from analisis_vertical_balance import generar_analisis_vertical_balance
 from analisis_vertical_estado_resultados import generar_analisis_vertical_estado_resultados
 from analisis_dupont import generar_analisis_dupont
 import json
-
+import os
 # =========================
 # Ventana principal mejorada
 # =========================
@@ -18,7 +18,7 @@ class AnalisisFinancieroApp:
         self.root.title("Sistema de Análisis Financiero")
         self.root.geometry("700x600")
         self.root.resizable(False, False)
-        
+
         
         # Centrar ventana en la pantalla
         self.centrar_ventana()
@@ -34,6 +34,8 @@ class AnalisisFinancieroApp:
         self.root.config(bg=self.bg_principal)
         
         self.registros_financieros = []
+        
+        self.cargar_desde_archivo()
         
         # Crear interfaz
         self.crear_header()
@@ -122,6 +124,25 @@ class AnalisisFinancieroApp:
             self.salir,
             3
         )
+    def guardar_en_archivo(self):
+   
+        try:
+            with open("registros_financieros.json", "w", encoding="utf-8") as f:
+                json.dump(self.registros_financieros, f, indent=4, ensure_ascii=False)
+            print("💾 Datos guardados en registros_financieros.json")
+        except Exception as e:
+            print("❌ Error al guardar JSON:", e)
+
+    def cargar_desde_archivo(self):
+        """Carga registros desde el archivo JSON al iniciar la aplicación."""
+        if os.path.exists("registros_financieros.json"):
+            try:
+                with open("registros_financieros.json", "r", encoding="utf-8") as f:
+                    self.registros_financieros = json.load(f)
+                    print(f"✓ Se cargaron {len(self.registros_financieros)} registro(s) desde el archivo")
+            except Exception as e:
+                print("❌ Error al cargar JSON:", e)
+                self.registros_financieros = []
 
     def crear_boton_menu(self, parent, texto, descripcion, color, comando, fila):
         """Crea un botón estilizado para el menú"""
@@ -328,22 +349,23 @@ class AnalisisFinancieroApp:
         frame_footer = tk.Frame(ventana_reportes, bg=self.bg_principal)
         frame_footer.pack(fill="x", padx=30, pady=(10, 20))
         
-        btn_cerrar = tk.Button(
+     
+        
+        btn_cancelar = tk.Button(
             frame_footer,
-            text="✕ Cerrar",
+            text="✕ Cancelar",
+            command=ventana_reportes.destroy,
             font=("Segoe UI", 11, "bold"),
             bg=self.color_peligro,
             fg="white",
+            activebackground=self.ajustar_color(self.color_peligro, 1.2),
+            activeforeground="white",
             cursor="hand2",
             relief="flat",
             padx=30,
-            pady=10,
-            borderwidth=0,
-            activebackground=self.ajustar_color(self.color_peligro, 1.2),
-            activeforeground="white",
-            command=on_closing
+            pady=10
         )
-        btn_cerrar.pack()
+        btn_cancelar.pack(side="right", padx=(0, 10))
     
     def crear_boton_reporte(self, parent, titulo, descripcion, comando):
         """Crea un botón estilizado para cada tipo de reporte"""
@@ -396,6 +418,8 @@ class AnalisisFinancieroApp:
         label_desc.bind("<Button-1>", lambda e: comando())
     
     def generar_balance_general(self):
+        self.cargar_desde_archivo()
+        
         if not self.registros_financieros:
             messagebox.showwarning(
                 "Sin Datos",
@@ -406,11 +430,88 @@ class AnalisisFinancieroApp:
         
         # Si hay un solo registro, usarlo directamente
         if len(self.registros_financieros) == 1:
-            generar_balance_general(self.root, self.registros_financieros[0])
+            generar_balance_general(self.root, self.registros_financieros[0], self)
             return
         
         # Si hay múltiples registros, permitir seleccionar uno
         self.seleccionar_registro_para_reporte("Balance General", generar_balance_general)
+    
+    def generar_estado_resultados(self):
+        self.cargar_desde_archivo()
+        
+        if not self.registros_financieros:
+            messagebox.showwarning(
+                "Sin Datos",
+                "No hay registros financieros para generar el Estado de Resultados.\n\n"
+                "Por favor, ingresa datos primero usando la opción 'Ingresar Datos'."
+            )
+            return
+        
+        # Si hay un solo registro, usarlo directamente
+        if len(self.registros_financieros) == 1:
+            generar_estado_resultados(self.root, self.registros_financieros[0], self)
+            return
+        
+        # Si hay múltiples registros, permitir seleccionar uno
+        self.seleccionar_registro_para_reporte("Estado de Resultados", generar_estado_resultados)
+    
+    def generar_analisis_vertical_balance(self):
+        self.cargar_desde_archivo()
+        
+        if not self.registros_financieros:
+            messagebox.showwarning(
+                "Sin Datos",
+                "No hay registros financieros para generar el Análisis Vertical.\n\n"
+                "Por favor, ingresa datos primero usando la opción 'Ingresar Datos'."
+            )
+            return
+        
+        # Si hay un solo registro, usarlo directamente
+        if len(self.registros_financieros) == 1:
+            generar_analisis_vertical_balance(self.root, self.registros_financieros[0], self)
+            return
+        
+        # Si hay múltiples registros, permitir seleccionar uno
+        self.seleccionar_registro_para_reporte("Análisis Vertical - Balance", generar_analisis_vertical_balance)
+    
+    def generar_analisis_vertical_resultados(self):
+        self.cargar_desde_archivo()
+        
+        if not self.registros_financieros:
+            messagebox.showwarning(
+                "Sin Datos",
+                "No hay registros financieros para generar el Análisis Vertical.\n\n"
+                "Por favor, ingresa datos primero usando la opción 'Ingresar Datos'."
+            )
+            return
+        
+        if len(self.registros_financieros) == 1:
+            generar_analisis_vertical_estado_resultados(self.root, self.registros_financieros[0], self)
+            return
+        
+        self.seleccionar_registro_para_reporte(
+            "Análisis Vertical - Estado de Resultados", 
+            generar_analisis_vertical_estado_resultados
+        )
+    
+    def generar_analisis_dupont(self):
+        self.cargar_desde_archivo()
+        
+        if not self.registros_financieros:
+            messagebox.showwarning(
+                "Sin Datos",
+                "No hay registros financieros para generar el Análisis de Rentabilidad DuPont.\n\n"
+                "Por favor, ingresa datos primero usando la opción 'Ingresar Datos'."
+            )
+            return
+        
+        # Si hay un solo registro, usarlo directamente
+        if len(self.registros_financieros) == 1:
+            generar_analisis_dupont(self.root, self.registros_financieros[0], self)
+            return
+        
+        # Si hay múltiples registros, permitir seleccionar uno
+        self.seleccionar_registro_para_reporte("Análisis DuPont", generar_analisis_dupont)
     
     def seleccionar_registro_para_reporte(self, nombre_reporte, funcion_reporte):
         """Permite seleccionar un registro cuando hay múltiples registros disponibles"""
@@ -561,7 +662,7 @@ class AnalisisFinancieroApp:
             idx = int(seleccion[0])
             registro = self.registros_financieros[idx]
             ventana_seleccion.destroy()
-            funcion_reporte(self.root, registro)
+            funcion_reporte(self.root, registro, self)
         
         btn_generar = tk.Button(
             frame_botones,
@@ -594,75 +695,6 @@ class AnalisisFinancieroApp:
             pady=10
         )
         btn_cancelar.pack(side="right", padx=(0, 10))
-    
-    def generar_estado_resultados(self):
-        if not self.registros_financieros:
-            messagebox.showwarning(
-                "Sin Datos",
-                "No hay registros financieros para generar el Estado de Resultados.\n\n"
-                "Por favor, ingresa datos primero usando la opción 'Ingresar Datos'."
-            )
-            return
-        
-        # Si hay un solo registro, usarlo directamente
-        if len(self.registros_financieros) == 1:
-            generar_estado_resultados(self.root, self.registros_financieros[0])
-            return
-        
-        # Si hay múltiples registros, permitir seleccionar uno
-        self.seleccionar_registro_para_reporte("Estado de Resultados", generar_estado_resultados)
-    
-    def generar_analisis_vertical_balance(self):
-        if not self.registros_financieros:
-            messagebox.showwarning(
-                "Sin Datos",
-                "No hay registros financieros para generar el Análisis Vertical.\n\n"
-                "Por favor, ingresa datos primero usando la opción 'Ingresar Datos'."
-            )
-            return
-        
-        # Si hay un solo registro, usarlo directamente
-        if len(self.registros_financieros) == 1:
-            generar_analisis_vertical_balance(self.root, self.registros_financieros[0])
-            return
-        
-        # Si hay múltiples registros, permitir seleccionar uno
-        self.seleccionar_registro_para_reporte("Análisis Vertical - Balance", generar_analisis_vertical_balance)
-    
-    def generar_analisis_vertical_resultados(self):
-        if not self.registros_financieros:
-            messagebox.showwarning(
-                "Sin Datos",
-                "No hay registros financieros para generar el Análisis Vertical.\n\n"
-                "Por favor, ingresa datos primero usando la opción 'Ingresar Datos'."
-            )
-            return
-        
-        if len(self.registros_financieros) == 1:
-            generar_analisis_vertical_estado_resultados(self.root, self.registros_financieros[0])
-            return
-        
-        self.seleccionar_registro_para_reporte(
-            "Análisis Vertical - Estado de Resultados", 
-            generar_analisis_vertical_estado_resultados
-        )
-    
-    def generar_analisis_dupont(self):
-        if not self.registros_financieros:
-            messagebox.showwarning(
-                "Sin Datos",
-                "No hay registros financieros para generar el Análisis de Rentabilidad DuPont.\n\n"
-                "Por favor, ingresa datos primero usando la opción 'Ingresar Datos'."
-            )
-            return
-        
-        # Si hay un solo registro, usarlo directamente
-        if len(self.registros_financieros) == 1:
-            generar_analisis_dupont(self.root, self.registros_financieros[0])
-            return
-        
-        # Si hay múltiples registros, permitir seleccionar uno
-        self.seleccionar_registro_para_reporte("Análisis DuPont", generar_analisis_dupont)
     
     def generar_resumen_ejecutivo(self):
         messagebox.showinfo(
