@@ -580,12 +580,17 @@ class AnalisisVerticalBalance:
             f"El archivo PDF fue creado exitosamente:\n\n{archivo_pdf}"
         )
 
-def generar_analisis_vertical_balance(parent, datos_financieros, app_instance=None):
-    if app_instance:
+def generar_analisis_vertical_balance(parent, datos_financieros=None, app_instance=None):
+    """Función principal para generar el Análisis Vertical del Balance"""
+
+    # Solo cargamos desde archivo y usamos el último registro
+    # si NO nos han pasado datos concretos
+    if datos_financieros is None and app_instance:
         app_instance.cargar_desde_archivo()
         if app_instance.registros_financieros:
             datos_financieros = app_instance.registros_financieros[-1]
     
+    # Validar que realmente tengamos datos
     if not datos_financieros:
         messagebox.showwarning(
             "Sin datos",
@@ -594,4 +599,5 @@ def generar_analisis_vertical_balance(parent, datos_financieros, app_instance=No
         )
         return
     
+    # Aquí ya se usa exactamente la empresa seleccionada
     AnalisisVerticalBalance(parent, datos_financieros)

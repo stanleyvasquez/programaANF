@@ -480,12 +480,17 @@ class AnalisisVerticalEstadoResultados:
             f"El archivo PDF fue creado exitosamente:\n\n{archivo_pdf}"
         )
 
-def generar_analisis_vertical_estado_resultados(parent, datos_financieros, app_instance=None):
-    if app_instance:
+def generar_analisis_vertical_estado_resultados(parent, datos_financieros=None, app_instance=None):
+    """Función principal para generar el Análisis Vertical del Estado de Resultados"""
+
+    # Solo cargo desde archivo y uso el último registro
+    # si NO me han pasado datos concretos
+    if datos_financieros is None and app_instance:
         app_instance.cargar_desde_archivo()
         if app_instance.registros_financieros:
             datos_financieros = app_instance.registros_financieros[-1]
     
+    # Validar que realmente tengamos algo
     if not datos_financieros:
         messagebox.showwarning(
             "Sin datos",
@@ -494,4 +499,5 @@ def generar_analisis_vertical_estado_resultados(parent, datos_financieros, app_i
         )
         return
     
+    # Aquí ya se respeta la empresa seleccionada
     AnalisisVerticalEstadoResultados(parent, datos_financieros)

@@ -537,13 +537,17 @@ class EstadoResultados:
 
         messagebox.showinfo("PDF Generado", f"Se creó el archivo:\n{nombre_archivo}")
     
-def generar_estado_resultados(parent, datos_financieros, app_instance=None):
+def generar_estado_resultados(parent, datos_financieros=None, app_instance=None):
     """Función principal para generar el estado de resultados"""
-    if app_instance:
+    
+    # Solo cargamos desde archivo y usamos el último registro
+    # si NO nos han pasado datos concretos
+    if datos_financieros is None and app_instance:
         app_instance.cargar_desde_archivo()
         if app_instance.registros_financieros:
             datos_financieros = app_instance.registros_financieros[-1]
     
+    # Validar que realmente tengamos algo
     if not datos_financieros:
         messagebox.showwarning(
             "Sin datos",
@@ -552,4 +556,5 @@ def generar_estado_resultados(parent, datos_financieros, app_instance=None):
         )
         return
     
+    # Aquí ya se respeta la empresa seleccionada
     EstadoResultados(parent, datos_financieros)

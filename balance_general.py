@@ -557,13 +557,17 @@ class BalanceGeneral:
 
         messagebox.showinfo("PDF Generado", f"Se creó el archivo:\n{nombre_archivo}")
 
-def generar_balance_general(parent, datos_financieros, app_instance=None):
+def generar_balance_general(parent, datos_financieros=None, app_instance=None):
     """Función principal para generar el balance general"""
-    if app_instance:
+    
+    # Si NO me han pasado datos concretos, entonces sí cargo desde archivo
+    if datos_financieros is None and app_instance:
         app_instance.cargar_desde_archivo()
         if app_instance.registros_financieros:
+            # Como último recurso, uso el último registro guardado
             datos_financieros = app_instance.registros_financieros[-1]
     
+    # Si sigue sin haber datos, aviso
     if not datos_financieros:
         messagebox.showwarning(
             "Sin datos",
@@ -572,4 +576,5 @@ def generar_balance_general(parent, datos_financieros, app_instance=None):
         )
         return
     
+    # Aquí ya se usa EXACTAMENTE el diccionario que corresponda
     BalanceGeneral(parent, datos_financieros)

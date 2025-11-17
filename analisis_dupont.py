@@ -622,7 +622,7 @@ class AnalisisDuPont:
 
 def generar_analisis_dupont(parent, datos_financieros, app_instance=None):
     """Función principal para generar el análisis DuPont"""
-    if app_instance:
+    if datos_financieros is None and app_instance:
         app_instance.cargar_desde_archivo()
         if app_instance.registros_financieros:
             datos_financieros = app_instance.registros_financieros[-1]
