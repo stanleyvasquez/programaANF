@@ -62,7 +62,6 @@ def generar_ratios_financieros(root, datos, app):
 
     periodo_pago = (cuentas_por_pagar / costo_ventas) * 365 if costo_ventas else 0
 
-    # Lo guardamos en un dict para reutilizarlo en el PDF
     ratios = {
         "liquidez_corriente": round(liquidez_corriente, 2),
         "prueba_acida": round(prueba_acida, 2),
@@ -77,98 +76,112 @@ def generar_ratios_financieros(root, datos, app):
     # =========================
     ventana = tk.Toplevel(root)
     ventana.title("📊 Indicadores Financieros – Ratios Financieros")
-    ventana.geometry("750x700")
-    ventana.config(bg=app.bg_principal)
+    ventana.geometry("900x700")  # un poco más ancho para que se vea mejor
+    ventana.config(bg="#1e293b")  # mismo fondo que el Balance General
     ventana.resizable(False, False)
 
+    # HEADER similar al balance_general
+    frame_header = tk.Frame(ventana, bg="#0f172a")
+    frame_header.pack(fill="x", pady=(0, 20))
+
     tk.Label(
-        ventana,
+        frame_header,
         text="📊 Ratios Financieros",
-        font=("Segoe UI", 20, "bold"),
-        bg=app.bg_secundario,
-        fg="white",
-        anchor="center",
-        justify="center"
-        
-    ).pack(fill="x", pady=10)
+        font=("Segoe UI", 24, "bold"),
+        bg="#0f172a",
+        fg="white"
+    ).pack(pady=10)
 
-    caja = scrolledtext.ScrolledText(
-        ventana,
-        width=95,
-        height=35,
-        bg=app.bg_secundario,
-        fg="white",
-        font=("Segoe UI", 10)
-    )
-    caja.pack(padx=20, pady=(10, 5))
-
-    # Encabezado
     nombre_empresa = datos.get("nombre_empresa", "Empresa no definida")
     anio = datos.get("anio", "Año no definido")
     tipo_moneda = datos.get("tipo_moneda", "")
 
-    caja.insert(tk.END, f"Empresa: {nombre_empresa}\n")
-    caja.insert(tk.END, f"Año: {anio}\n")
-    caja.insert(tk.END, f"Moneda: {tipo_moneda}\n\n")
+    info_frame = tk.Frame(frame_header, bg="#0f172a")
+    info_frame.pack(pady=(0, 10))
 
+    tk.Label(
+        info_frame,
+        text=f"{nombre_empresa}",
+        font=("Segoe UI", 14, "bold"),
+        bg="#0f172a",
+        fg="#94a3b8"
+    ).pack()
+
+    tk.Label(
+        info_frame,
+        text=f"Año: {anio} | Moneda: {tipo_moneda}",
+        font=("Segoe UI", 11),
+        bg="#0f172a",
+        fg="#64748b"
+    ).pack()
+
+    # CUERPO PRINCIPAL
+    frame_contenedor = tk.Frame(ventana, bg="#1e293b")
+    frame_contenedor.pack(fill="both", expand=True, padx=20, pady=(0, 10))
+
+    caja = scrolledtext.ScrolledText(
+        frame_contenedor,
+        width=95,
+        height=25,
+        bg="#111827",
+        fg="white",
+        font=("Segoe UI", 10)
+    )
+    caja.pack(fill="both", expand=True)
+
+    # ===== CONTENIDO DEL TEXTO =====
     caja.insert(tk.END, "RESULTADOS DE RATIOS FINANCIEROS\n")
     caja.insert(tk.END, "---------------------------------\n\n")
 
     caja.insert(tk.END, f"Liquidez Corriente: {ratios['liquidez_corriente']:.2f}\n")
+    caja.insert(
+        tk.END,
+        "   • Mide cuántas veces los activos corrientes cubren los pasivos corrientes.\n"
+        "   • Una razón mayor a 1 indica, en general, capacidad para cubrir obligaciones de corto plazo.\n\n"
+    )
+
     caja.insert(tk.END, f"Prueba Ácida: {ratios['prueba_acida']:.2f}\n")
-    caja.insert(tk.END, f"Capital de Trabajo: ${ratios['capital_trabajo']:,.2f}\n\n")
-
-    caja.insert(tk.END, f"Rotación de Inventarios: {ratios['rotacion_inventarios']:.2f} veces\n")
-    caja.insert(tk.END, f"Período Promedio de Cobro: {ratios['periodo_cobro']:.1f} días\n")
-    caja.insert(tk.END, f"Período Promedio de Pago: {ratios['periodo_pago']:.1f} días\n\n")
-
-    # =========================
-    # INTERPRETACIÓN DE RATIOS (VENTANA)
-    # =========================
-    caja.insert(tk.END, "INTERPRETACIÓN DE LOS RATIOS\n")
-    caja.insert(tk.END, "----------------------------\n\n")
-
     caja.insert(
         tk.END,
-        f"- Liquidez Corriente: indica cuántos {tipo_moneda.split('-')[0].strip() if tipo_moneda else 'unidades monetarias'} "
-        f"de activos corrientes tiene la empresa por cada 1 de deuda a corto plazo. "
-        f"Un valor de {ratios['liquidez_corriente']:.2f} significa que por cada 1 en pasivos corrientes, "
-        f"la empresa dispone de {ratios['liquidez_corriente']:.2f} en activos corrientes.\n\n"
+        "   • Similar a la liquidez corriente, pero excluye inventarios.\n"
+        "   • Evalúa la capacidad de pago inmediato, sin depender de vender existencias.\n\n"
+    )
+
+    caja.insert(tk.END, f"Capital de Trabajo: ${ratios['capital_trabajo']:,.2f}\n")
+    caja.insert(
+        tk.END,
+        "   • Diferencia entre activos corrientes y pasivos corrientes.\n"
+        "   • Representa el margen de maniobra para operar en el corto plazo.\n\n"
     )
 
     caja.insert(
         tk.END,
-        f"- Prueba Ácida: mide la capacidad de la empresa para cubrir sus deudas a corto plazo sin depender "
-        f"de los inventarios. Un valor de {ratios['prueba_acida']:.2f} indica cuántas unidades monetarias "
-        f"líquidas (sin inventarios) tiene por cada 1 de pasivo corriente.\n\n"
+        f"Rotación de Inventarios: {ratios['rotacion_inventarios']:.2f} veces\n"
+    )
+    caja.insert(
+        tk.END,
+        "   • Indica cuántas veces en el año se vende y renueva el inventario.\n"
+        "   • Un valor bajo puede señalar inventario ocioso; uno muy alto, riesgo de desabastecimiento.\n\n"
     )
 
     caja.insert(
         tk.END,
-        f"- Capital de Trabajo: representa el excedente de activos corrientes sobre pasivos corrientes. "
-        f"Un capital de trabajo de {ratios['capital_trabajo']:,.2f} significa que, después de cubrir las "
-        f"deudas a corto plazo, la empresa aún dispone de ese monto para operar.\n\n"
+        f"Período Promedio de Cobro: {ratios['periodo_cobro']:.1f} días\n"
+    )
+    caja.insert(
+        tk.END,
+        "   • Días promedio que tarda la empresa en cobrar sus cuentas por cobrar.\n"
+        "   • Se compara con la política de crédito (30 días, 60 días, etc.).\n\n"
     )
 
     caja.insert(
         tk.END,
-        f"- Rotación de Inventarios: muestra cuántas veces, aproximadamente, la empresa renueva sus inventarios "
-        f"en el año. Un valor de {ratios['rotacion_inventarios']:.2f} veces indica la frecuencia con la que "
-        f"el inventario se convierte en ventas.\n\n"
+        f"Período Promedio de Pago: {ratios['periodo_pago']:.1f} días\n"
     )
-
     caja.insert(
         tk.END,
-        f"- Período Promedio de Cobro: indica el número de días que, en promedio, tarda la empresa en cobrar "
-        f"sus cuentas por cobrar. Un valor de {ratios['periodo_cobro']:.1f} días sugiere el tiempo estimado "
-        f"que el efectivo tarda en entrar a la empresa después de una venta a crédito.\n\n"
-    )
-
-    caja.insert(
-        tk.END,
-        f"- Período Promedio de Pago: indica el número de días que, en promedio, la empresa tarda en pagar "
-        f"a sus proveedores. Un valor de {ratios['periodo_pago']:.1f} días refleja el plazo habitual de pago "
-        f"de las obligaciones con terceros.\n\n"
+        "   • Días promedio que tarda la empresa en pagar a sus proveedores.\n"
+        "   • Un plazo mayor mejora liquidez, pero puede afectar la relación con proveedores.\n"
     )
 
     caja.config(state="disabled")
@@ -186,78 +199,75 @@ def generar_ratios_financieros(root, datos, app):
             )
             return
 
-        # Nombre de archivo
         nombre_limpio = str(nombre_empresa).replace(" ", "_").replace("/", "_")
         nombre_archivo = f"Ratios_Financieros_{nombre_limpio}_{anio}.pdf"
 
         try:
             c = canvas.Canvas(nombre_archivo, pagesize=letter)
             width, height = letter
-            y = height - 50
+            y = height - 60
 
-            # Título
+            # ===== Título centrado =====
+            titulo = "Ratios Financieros"
             c.setFont("Helvetica-Bold", 16)
-            c.drawCentredString(width / 2, y, "Ratios Financieros")
+            tw = c.stringWidth(titulo, "Helvetica-Bold", 16)
+            c.drawString((width - tw) / 2, y, titulo)
             y -= 30
 
-            # Datos generales
+            # ===== Datos generales centrados =====
             c.setFont("Helvetica-Bold", 10)
-            c.drawCentredString(width / 2, y, f"Empresa: {nombre_empresa}")
+
+            texto = f"Empresa: {nombre_empresa}"
+            tw = c.stringWidth(texto, "Helvetica-Bold", 10)
+            c.drawString((width - tw) / 2, y, texto)
             y -= 15
-            c.drawCentredString(width / 2, y, f"Año: {anio}")
+
+            texto = f"Año: {anio}"
+            tw = c.stringWidth(texto, "Helvetica-Bold", 10)
+            c.drawString((width - tw) / 2, y, texto)
             y -= 15
-            c.drawCentredString(width / 2, y, f"Moneda: {tipo_moneda}")
+
+            texto = f"Moneda: {tipo_moneda}"
+            tw = c.stringWidth(texto, "Helvetica-Bold", 10)
+            c.drawString((width - tw) / 2, y, texto)
             y -= 30
 
-            # Ratios
+            # ===== Ratios con significado =====
             c.setFont("Helvetica-Bold", 11)
-            c.drawString(50, y, "Resultados de Ratios:")
+            c.drawString(50, y, "Resultados e interpretación de los ratios:")
             y -= 20
             c.setFont("Helvetica", 10)
 
             lineas = [
                 f"Liquidez Corriente: {ratios['liquidez_corriente']:.2f}",
+                "  Indica cuántas veces los activos corrientes cubren los pasivos corrientes.",
+                "",
                 f"Prueba Ácida: {ratios['prueba_acida']:.2f}",
+                "  Mide la capacidad de pago a corto plazo sin considerar inventarios.",
+                "",
                 f"Capital de Trabajo: ${ratios['capital_trabajo']:,.2f}",
+                "  Diferencia entre activos corrientes y pasivos corrientes; margen operativo de corto plazo.",
+                "",
                 f"Rotación de Inventarios: {ratios['rotacion_inventarios']:.2f} veces",
+                "  Veces que el inventario se vende y se repone a lo largo del año.",
+                "",
                 f"Período Promedio de Cobro: {ratios['periodo_cobro']:.1f} días",
+                "  Días promedio para recuperar las cuentas por cobrar.",
+                "",
                 f"Período Promedio de Pago: {ratios['periodo_pago']:.1f} días",
+                "  Días promedio que tarda la empresa en pagar a sus proveedores.",
             ]
 
             for linea in lineas:
-                if y < 80:  # si ya no hay espacio en la página, crear otra
-                    c.showPage()
-                    y = height - 50
-                    c.setFont("Helvetica", 10)
-                c.drawString(50, y, linea)
-                y -= 18
-
-            # Interpretación en el PDF
-            if y < 120:
-                c.showPage()
-                y = height - 50
-
-            c.setFont("Helvetica-Bold", 11)
-            c.drawString(50, y, "Interpretación de los Ratios:")
-            y -= 25
-            c.setFont("Helvetica", 10)
-
-            interpretaciones = [
-                f"• Liquidez Corriente: indica cuántas unidades monetarias de activos corrientes hay por cada 1 de deuda a corto plazo.",
-                f"• Prueba Ácida: mide la capacidad de pagar deudas de corto plazo sin depender de los inventarios.",
-                f"• Capital de Trabajo: muestra el excedente de activos corrientes sobre pasivos corrientes para operar.",
-                f"• Rotación de Inventarios: refleja cuántas veces, aproximadamente, se renueva el inventario en el año.",
-                f"• Período Promedio de Cobro: días promedio que tarda la empresa en cobrar sus ventas a crédito.",
-                f"• Período Promedio de Pago: días promedio que tarda la empresa en pagar a sus proveedores.",
-            ]
-
-            for interp in interpretaciones:
                 if y < 80:
                     c.showPage()
-                    y = height - 50
+                    y = height - 60
                     c.setFont("Helvetica", 10)
-                c.drawString(50, y, interp)
-                y -= 18
+                if linea == "":
+                    y -= 5
+                else:
+                    c.drawString(50, y, linea)
+                    y -= 15
 
             c.showPage()
             c.save()
@@ -274,23 +284,41 @@ def generar_ratios_financieros(root, datos, app):
             )
 
     # =========================
-    # BOTÓN EXPORTAR PDF
+    # BOTONES IGUALES AL BALANCE GENERAL
     # =========================
-    frame_botones = tk.Frame(ventana, bg=app.bg_principal)
-    frame_botones.pack(fill="x", pady=(0, 15))
+    frame_botones = tk.Frame(ventana, bg="#1e293b")
+    frame_botones.pack(fill="x", padx=20, pady=(0, 20))
 
-    btn_exportar = tk.Button(
+    # Botón Cerrar (a la derecha, igual que en Balance General)
+    btn_cerrar = tk.Button(
         frame_botones,
-        text="📄 Exportar a PDF",
+        text="✕ Cerrar",
+        command=ventana.destroy,
         font=("Segoe UI", 11, "bold"),
-        bg=app.color_exito,
+        bg="#ef4444",          # mismo rojo
         fg="white",
+        activebackground="#dc2626",
+        activeforeground="white",
         cursor="hand2",
         relief="flat",
         padx=30,
-        pady=8,
-        activebackground=app.ajustar_color(app.color_exito, 1.2),
-        activeforeground="white",
-        command=exportar_pdf
+        pady=10
     )
-    btn_exportar.pack(side="right", padx=20)
+    btn_cerrar.pack(side="right")
+
+    # Botón Exportar PDF (a la derecha, pero a la izquierda del Cerrar)
+    btn_exportar = tk.Button(
+        frame_botones,
+        text="📄 Exportar PDF",
+        command=exportar_pdf,
+        font=("Segoe UI", 11, "bold"),
+        bg="#0ea5e9",          # mismo celeste
+        fg="white",
+        activebackground="#0284c7",
+        activeforeground="white",
+        cursor="hand2",
+        relief="flat",
+        padx=30,
+        pady=10
+    )
+    btn_exportar.pack(side="right", padx=(0, 10))

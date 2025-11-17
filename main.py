@@ -226,6 +226,7 @@ class AnalisisFinancieroApp:
     
     def ingresar_datos(self):
         """Abre la ventana de ingreso de datos usando el módulo externo"""
+        self.root.withdraw()
         ingreso = IngresoFinanciero(self)
         ingreso.abrir_ventana()
 
@@ -238,7 +239,7 @@ class AnalisisFinancieroApp:
                 "Por favor, ingresa datos primero usando la opción 'Ingresar Datos'."
             )
             return
-        
+        self.root.withdraw()
         edicion = EdicionFinanciero(self)
         edicion.abrir_ventana()
 

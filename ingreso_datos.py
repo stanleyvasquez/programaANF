@@ -72,13 +72,22 @@ class IngresoFinanciero:
         
         def on_closing():
             try:
-                canvas.unbind_all("<MouseWheel>")
+             canvas.unbind_all("<MouseWheel>")
             except:
                 pass
             IngresoFinanciero._ventana_abierta = None  # Clear reference
+
+            # VOLVER A MOSTRAR la ventana principal
+            try:
+                self.parent_app.root.deiconify()
+            except:
+                pass
+
             ventana_ingreso.destroy()
-        
+
         ventana_ingreso.protocol("WM_DELETE_WINDOW", on_closing)
+        
+      
         
         canvas.pack(side="left", fill="both", expand=True, padx=(60, 0))
         scrollbar.pack(side="right", fill="y")
