@@ -20,15 +20,17 @@ class IngresoFinanciero:
         IngresoFinanciero._ventana_abierta = ventana_ingreso  # Store reference
         
         ventana_ingreso.title("Ingresar Datos Financieros")
-        ventana_ingreso.geometry("950x700")
+        ventana_ingreso.geometry("1300x800")
         ventana_ingreso.config(bg=self.parent_app.bg_principal)
         ventana_ingreso.resizable(False, False)
         
         # Centrar ventana
         ventana_ingreso.update_idletasks()
-        x = (ventana_ingreso.winfo_screenwidth() // 2) - (475)
-        y = (ventana_ingreso.winfo_screenheight() // 2) - (350)
-        ventana_ingreso.geometry(f'950x700+{x}+{y}')
+        x = (ventana_ingreso.winfo_screenwidth() // 2) - (650)
+        y = (ventana_ingreso.winfo_screenheight() // 2) - (400)
+        ventana_ingreso.geometry(f'1300x800+{x}+{y}')
+        
+        self.parent_app.root.withdraw()
         
         # Header
         frame_header = tk.Frame(ventana_ingreso, bg=self.parent_app.bg_secundario, height=70)
@@ -72,22 +74,17 @@ class IngresoFinanciero:
         
         def on_closing():
             try:
-             canvas.unbind_all("<MouseWheel>")
+                canvas.unbind_all("<MouseWheel>")
             except:
                 pass
             IngresoFinanciero._ventana_abierta = None  # Clear reference
-
-            # VOLVER A MOSTRAR la ventana principal
             try:
-                self.parent_app.root.deiconify()
+                self.parent_app.root.deiconify()  # Show main window instead of closing
             except:
                 pass
-
             ventana_ingreso.destroy()
 
         ventana_ingreso.protocol("WM_DELETE_WINDOW", on_closing)
-        
-      
         
         canvas.pack(side="left", fill="both", expand=True, padx=(60, 0))
         scrollbar.pack(side="right", fill="y")
@@ -382,6 +379,8 @@ class IngresoFinanciero:
             )
             label_ayuda.pack(fill="x", pady=(0, 8))
         
+        vcmd = (self.parent_app.root.register(self.validar_numero), '%S', '%P')
+        
         for item in campos:
             if isinstance(item, dict):
                 # Es un subrubro con sus propios campos
@@ -409,8 +408,9 @@ class IngresoFinanciero:
                         font=("Segoe UI", 8),
                         bg=self.parent_app.bg_secundario,
                         fg=self.parent_app.color_texto,
-                        width=28,
-                        anchor="w"
+                        width=38 if titulo == "PASIVOS" else 40,
+                        anchor="w",
+                        justify="left"
                     )
                     label.pack(side="left", padx=(15, 8))
                     
@@ -421,7 +421,9 @@ class IngresoFinanciero:
                         fg="white",
                         insertbackground="white",
                         relief="flat",
-                        width=18
+                        width=20,
+                        validate='key',
+                        validatecommand=vcmd
                     )
                     entry.pack(side="left", ipady=3, fill="x", expand=True)
                     
@@ -447,8 +449,9 @@ class IngresoFinanciero:
                     font=("Segoe UI", 9),
                     bg=self.parent_app.bg_secundario,
                     fg=self.parent_app.color_texto,
-                    width=20,
-                    anchor="w"
+                    width=35,
+                    anchor="w",
+                    justify="left"
                 )
                 label.pack(side="left", padx=(0, 8))
                 
@@ -459,7 +462,9 @@ class IngresoFinanciero:
                     fg="white",
                     insertbackground="white",
                     relief="flat",
-                    width=20
+                    width=20,
+                    validate='key',
+                    validatecommand=vcmd
                 )
                 entry.pack(side="left", ipady=4, fill="x", expand=True)
                 
@@ -474,6 +479,31 @@ class IngresoFinanciero:
                     fg="#3bb273"
                 )
                 label_moneda.pack(side="left", padx=(4, 0))
+
+    def validar_numero(self, char, valor_completo):
+        """
+        Valida que solo se ingresen números, puntos decimales y guiones para valores negativos
+        """
+        if valor_completo == "":  # Permitir campo vacío
+            return True
+        
+        # Permitir números (0-9), puntos (.), y guiones (-) al principio
+        if char == "":  # Cuando se borra
+            return True
+        
+        # Validar cada carácter ingresado
+        if char.isdigit() or char == '.':
+            # Si es un punto, verificar que no haya otro punto ya
+            if char == '.' and valor_completo.count('.') > 1:
+                return False
+            return True
+        elif char == '-':
+            # El guion solo puede estar al principio
+            if valor_completo.index(char) == 0:
+                return True
+            return False
+        
+        return False
 
     def guardar_datos(self, ventana):
         nombre_empresa = self.entries["nombre_empresa"].get().strip()
@@ -528,4 +558,10 @@ class IngresoFinanciero:
             "• Modificar los datos ingresados\n"
             "• Generar reportes financieros"
         )
+        
+        IngresoFinanciero._ventana_abierta = None
+        try:
+            self.parent_app.root.deiconify()
+        except:
+            pass
         ventana.destroy()

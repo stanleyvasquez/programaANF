@@ -30,6 +30,8 @@ class EdicionFinanciero:
         y = (ventana_seleccion.winfo_screenheight() // 2) - (300)
         ventana_seleccion.geometry(f'1000x600+{x}+{y}')
         
+        self.parent_app.root.withdraw()
+        
         # Header
         frame_header = tk.Frame(ventana_seleccion, bg=self.parent_app.bg_secundario, height=80)
         frame_header.pack(fill="x")
@@ -191,6 +193,10 @@ class EdicionFinanciero:
         
         def on_close_window():
             EdicionFinanciero._ventana_seleccion_abierta = None  # Clear reference on close
+            try:
+                self.parent_app.root.deiconify()
+            except:
+                pass
             ventana_seleccion.destroy()
         
         ventana_seleccion.protocol("WM_DELETE_WINDOW", on_close_window)
@@ -198,6 +204,10 @@ class EdicionFinanciero:
     def _on_closing_selection(self, ventana):
         """Helper method to clear reference when closing"""
         EdicionFinanciero._ventana_seleccion_abierta = None
+        try:
+            self.parent_app.root.deiconify()
+        except:
+            pass
         ventana.destroy()
     
     def abrir_formulario_edicion(self):
@@ -251,6 +261,10 @@ class EdicionFinanciero:
             except:
                 pass
             EdicionFinanciero._ventana_edicion_abierta = None  # Clear reference
+            try:
+                self.parent_app.root.deiconify()
+            except:
+                pass
             ventana_edicion.destroy()
         
         ventana_edicion.protocol("WM_DELETE_WINDOW", on_closing)
@@ -365,6 +379,21 @@ class EdicionFinanciero:
             command=lambda: self.guardar_cambios(ventana_edicion)
         )
         btn_guardar.pack(side="left", padx=10, expand=True)
+        
+        btn_eliminar = tk.Button(
+            frame_botones,
+            text="🗑️ Eliminar Empresa",
+            font=("Segoe UI", 12, "bold"),
+            bg="#dc2626",
+            fg="white",
+            cursor="hand2",
+            relief="flat",
+            padx=30,
+            pady=12,
+            activebackground="#991b1b",
+            command=lambda: self.eliminar_empresa(ventana_edicion)
+        )
+        btn_eliminar.pack(side="left", padx=5, expand=True)
         
         btn_cancelar = tk.Button(
             frame_botones,
@@ -726,4 +755,40 @@ class EdicionFinanciero:
             f"Año: {anio}\n"
             f"Moneda: {tipo_moneda}"
         )
+        
+        # Return to main screen
+        EdicionFinanciero._ventana_edicion_abierta = None
+        try:
+            self.parent_app.root.deiconify()
+        except:
+            pass
         ventana.destroy()
+    
+    def eliminar_empresa(self, ventana):
+        """Elimina la empresa seleccionada completamente"""
+        confirmar = messagebox.askyesno(
+            "Confirmar Eliminación",
+            f"¿Estás seguro de que deseas eliminar la empresa '{self.datos_actuales.get('nombre_empresa', 'N/A')}'?\n\n"
+            "Esta acción no se puede deshacer y también eliminará todos sus datos del archivo JSON."
+        )
+        
+        if not confirmar:
+            return
+        
+        # Remove the record from the list
+        if self.indice_actual < len(self.parent_app.registros_financieros):
+            del self.parent_app.registros_financieros[self.indice_actual]
+            self.parent_app.guardar_en_archivo()
+            
+            messagebox.showinfo(
+                "Empresa Eliminada",
+                "La empresa y todos sus datos han sido eliminados exitosamente."
+            )
+            
+            # Return to main screen
+            EdicionFinanciero._ventana_edicion_abierta = None
+            try:
+                self.parent_app.root.deiconify()
+            except:
+                pass
+            ventana.destroy()

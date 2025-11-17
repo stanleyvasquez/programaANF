@@ -262,6 +262,8 @@ class AnalisisFinancieroApp:
         y = (ventana_reportes.winfo_screenheight() // 2) - (350)
         ventana_reportes.geometry(f'850x700+{x}+{y}')
         
+        self.root.withdraw()
+        
         # Header
         frame_header = tk.Frame(ventana_reportes, bg=self.bg_secundario, height=90)
         frame_header.pack(fill="x")
@@ -313,6 +315,10 @@ class AnalisisFinancieroApp:
         def on_closing():
             canvas.unbind_all("<MouseWheel>")
             self.ventana_reportes_abierta = None  # Limpiar referencia
+            try:
+                self.root.deiconify()
+            except:
+                pass
             ventana_reportes.destroy()
         
         ventana_reportes.protocol("WM_DELETE_WINDOW", on_closing)
@@ -378,22 +384,6 @@ class AnalisisFinancieroApp:
             command=on_closing
         )
         btn_cerrar.pack(side="right")
-        
-        btn_cancelar = tk.Button(
-            frame_footer,
-            text="✕ Cancelar",
-            command=ventana_reportes.destroy,
-            font=("Segoe UI", 11, "bold"),
-            bg=self.color_peligro,
-            fg="white",
-            activebackground=self.ajustar_color(self.color_peligro, 1.2),
-            activeforeground="white",
-            cursor="hand2",
-            relief="flat",
-            padx=30,
-            pady=10
-        )
-        
     
     def crear_boton_reporte(self, parent, titulo, descripcion, comando, ventana_padre):
         """Crea un botón estilizado para cada tipo de reporte"""
